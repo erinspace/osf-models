@@ -15,6 +15,9 @@ setup(name='osf_models',
         'psycopg2',
         'django-extensions==1.6.1',
         'pymongo==2.5.1',
-        'modular-odm>=0.3.0'
+        'modular-odm>=0.3.0',
+        'furl==0.4.92',
+        'bleach==1.4.1',
+        'html5lib==0.999',
       ],
       zip_safe=False)
