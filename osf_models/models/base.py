@@ -78,6 +78,7 @@ class GuidMixin(models.Model):
     class Meta:
         abstract = True
 
+
 class MODMCompatibilityQuerySet(models.QuerySet):
     def sort(self, *fields):
         # Fields are passed in as e.g. [('title', 1), ('date_created', -1)]
@@ -95,6 +96,7 @@ class MODMCompatibilityQuerySet(models.QuerySet):
 
     def limit(self, n):
         return self[:n]
+
 
 class BaseModel(models.Model):
     """Base model that acts makes subclasses mostly compatible with the
