@@ -1,15 +1,21 @@
 import random
 
-from django.db import models
+
 from django.core.exceptions import ValidationError as DjangoValidationError
-from modularodm.query import QueryGroup
 import modularodm.exceptions
 
 from osf_models.modm_compat import to_django_query
 from osf_models.exceptions import ValidationError
+import modularodm.exceptions
+from datetime import datetime
+
+import pytz
+from django.db import models
+import logging
 
 ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz'
 
+logger = logging.getLogger(__name__)
 
 def generate_guid(length=5):
     while True:
@@ -137,3 +143,32 @@ class BaseModel(models.Model):
             except DjangoValidationError as err:
                 raise ValidationError(*err.args)
         return super(BaseModel, self).save(*args, **kwargs)
+
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        """
+        Given a modm object, make a django object with the same local fields.
+        This is a base method that may work for simple things. It should be customized for complex ones.
+        :param modm_obj:
+        :return:
+        """
+        guid, created = Guid.objects.get_or_create(guid=modm_obj._id)
+        if created:
+            logger.debug('Created a new Guid for {}'.format(modm_obj))
+        django_obj = cls()
+        django_obj._guid = guid
+
+        local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation])
+
+        intersecting_fields = set(modm_obj.to_storage().keys()).intersection(
+            set(local_django_fields))
+
+        for field in intersecting_fields:
+            modm_value = getattr(modm_obj, field)
+            if modm_value is None:
+                continue
+            if isinstance(modm_value, datetime):
+                modm_value = pytz.utc.localize(modm_value)
+            setattr(django_obj, field, modm_value)
+
+        return django_obj
