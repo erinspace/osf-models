@@ -6,7 +6,8 @@ from osf_models.models.institution import Institution # noqa
 from osf_models.models.node import Node, Registration, Collection  # noqa
 from osf_models.models.nodelog import NodeLog  # noqa
 from osf_models.models.tag import Tag  # noqa
-from osf_models.models.citation import AlternativeCitation  # noqa
+from osf_models.models.comment import Comment  # noqa
+from osf_models.models.citation import AlternativeCitation, CitationStyle  # noqa
 from osf_models.models.archive import ArchiveJob, ArchiveTarget  # noqa
 
 # removing these because they rely on osf.io
