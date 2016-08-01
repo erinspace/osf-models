@@ -349,8 +349,13 @@ class OSFUser(GuidMixin, BaseModel, AbstractBaseUser, PermissionsMixin):
     @classmethod
     def migrate_from_modm(cls, modm_obj):
         modm_obj = super(OSFUser, cls).migrate_from_modm(modm_obj)
-        # django thinks bcrypt should start with bcrypt...
-        modm_obj.password = 'bcrypt${}'.format(modm_obj.password)
+        if modm_obj.password == '' or modm_obj.password is None:
+            # password is blank=False, null=False
+            # make them have a password
+            modm_obj.set_unusable_password()
+        else:
+            # django thinks bcrypt should start with bcrypt...
+            modm_obj.password = 'bcrypt${}'.format(modm_obj.password)
         return modm_obj
 
     # Legacy methods
