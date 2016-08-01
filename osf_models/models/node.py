@@ -18,7 +18,6 @@ from typedmodels.models import TypedModel
 from website.exceptions import UserNotAffiliatedError
 from .base import BaseModel, GuidMixin
 
-
 class AbstractNode(TypedModel, Loggable, GuidMixin, BaseModel):
     """
     All things that inherit from AbstractNode will appear in
