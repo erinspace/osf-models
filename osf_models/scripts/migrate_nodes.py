@@ -14,7 +14,7 @@ from osf_models.models import Registration
 
 from framework.auth import User as MODMUser
 from modularodm import Q as MQ
-from osf_models.models import Contributor, Guid, Node, Tag, OSFUser
+from osf_models.models import Contributor, Node, Tag, OSFUser
 from osf_models.models.sanctions import Embargo, Retraction
 from website.models import Embargo as MODMEmbargo
 from website.models import Retraction as MODMRetraction
@@ -892,13 +892,8 @@ def set_node_many_to_many_on_nodes(page_size=5000):
                         elif isinstance(modm_m2m_value, basestring):
                             django_pks.append(modm_to_django[modm_m2m_value])
                         elif isinstance(modm_m2m_value, Pointer):
-                            try:
-                                django_pks.append(modm_to_django[
-                                    modm_m2m_value.node._id])
-                            except KeyError:
-                                import ipdb
-
-                                ipdb.set_trace()
+                            django_pks.append(modm_to_django[
+                                modm_m2m_value.node._id])
                         else:
                             # wth
                             print '\a'
@@ -944,8 +939,15 @@ def set_user_many_to_many_on_nodes(page_size=5000):
                         continue
                     attr = getattr(django_node, m2m_user_field)
                     django_pks = []
-                    for modm_m2m_value in getattr(modm_node, m2m_user_field,
-                                                  []):
+
+                    try:
+                        modm_user_value = getattr(modm_node, m2m_user_field, [])
+                    except Exception as ex:
+                        import ipdb
+                        ipdb.set_trace()
+                        modm_user_value = []
+
+                    for modm_m2m_value in modm_user_value:
                         if isinstance(modm_m2m_value, MODMUser):
                             if m2m_user_field == 'contributors':
                                 visible = modm_m2m_value._id in modm_node.visible_contributor_ids

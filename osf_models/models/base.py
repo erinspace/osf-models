@@ -1,17 +1,15 @@
+import logging
 import random
-
-
-from django.core.exceptions import ValidationError as DjangoValidationError
-import modularodm.exceptions
-
-from osf_models.modm_compat import to_django_query
-from osf_models.exceptions import ValidationError
-import modularodm.exceptions
 from datetime import datetime
 
+import modularodm.exceptions
+import modularodm.exceptions
 import pytz
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
-import logging
+from osf_models.exceptions import ValidationError
+from osf_models.modm_compat import to_django_query
+from osf_models.utils.base import get_object_id
 
 ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz'
 
@@ -59,24 +57,6 @@ class PKIDStr(str):
 
     def __int__(self):
         return self.__pk
-
-
-class GuidMixin(models.Model):
-    _guid = models.OneToOneField(Guid,
-                                 default=generate_guid_instance,
-                                 unique=True,
-                                 related_name='referent_%(class)s')
-
-    @property
-    def guid(self):
-        return self._guid.guid
-
-    @property
-    def _id(self):
-        return PKIDStr(self._guid.guid, self.pk)
-
-    class Meta:
-        abstract = True
 
 
 class MODMCompatibilityQuerySet(models.QuerySet):
@@ -174,3 +154,35 @@ class BaseModel(models.Model):
             setattr(django_obj, field, modm_value)
 
         return django_obj
+
+
+class BSONGuidMixin(models.Model):
+    _guid = models.CharField(max_length=255,
+                             unique=True,
+                             db_index=True,
+                             default=get_object_id)
+    @property
+    def guid(self):
+        return self._guid
+
+    @property
+    def _id(self):
+        return PKIDStr(self._guid, self.pk)
+
+
+class GuidMixin(models.Model):
+    _guid = models.OneToOneField('Guid',
+                                 default=generate_guid_instance,
+                                 unique=True,
+                                 related_name='referent_%(class)s')
+
+    @property
+    def guid(self):
+        return self._guid.guid
+
+    @property
+    def _id(self):
+        return PKIDStr(self._guid.guid, self.pk)
+
+    class Meta:
+        abstract = True
