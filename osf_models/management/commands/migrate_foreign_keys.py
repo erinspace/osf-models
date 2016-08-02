@@ -1,3 +1,4 @@
+from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime
@@ -17,14 +18,14 @@ class Command(BaseCommand):
     help = 'Migrates data from tokumx to postgres'
 
     def handle(self, *args, **options):
-        print 'Initializing Flask App...'
+        print('Initializing Flask App...')
         init_app()
         start = datetime.now()
 
         global modm_to_django
         modm_to_django = build_pk_caches()
-        print 'Cached {} MODM to django mappings...'.format(len(
-            modm_to_django.keys()))
+        print('Cached {} MODM to django mappings...'.format(len(
+            modm_to_django.keys())))
 
         # fk
         set_node_foreign_keys_on_nodes()
@@ -33,5 +34,5 @@ class Command(BaseCommand):
         set_user_foreign_keys_on_nodes()
         set_user_foreign_keys_on_users()
 
-        print 'Finished in {} seconds...'.format((datetime.now() - start
-                                                  ).total_seconds())
+        print('Finished in {} seconds...'.format((datetime.now() - start
+                                                  ).total_seconds()))
