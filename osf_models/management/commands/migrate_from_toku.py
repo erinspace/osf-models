@@ -34,6 +34,8 @@ class Command(BaseCommand):
     help = 'Migrates data from tokumx to postgres'
 
     def handle(self, *args, **options):
+        print 'DEPRECATED -- Call individual mgmt commands'
+        return
         print 'Initializing Flask App...'
         init_app()
         start = datetime.now()
