@@ -345,18 +345,18 @@ class OSFUser(GuidMixin, BaseModel, AbstractBaseUser, PermissionsMixin):
 
     def __str__(self):
         return self.get_short_name()
-    
+
     @classmethod
     def migrate_from_modm(cls, modm_obj):
-        modm_obj = super(OSFUser, cls).migrate_from_modm(modm_obj)
-        if modm_obj.password == '' or modm_obj.password is None:
+        django_obj = super(OSFUser, cls).migrate_from_modm(modm_obj)
+        if django_obj.password == '' or django_obj.password is None:
             # password is blank=False, null=False
             # make them have a password
-            modm_obj.set_unusable_password()
+            django_obj.set_unusable_password()
         else:
             # django thinks bcrypt should start with bcrypt...
-            modm_obj.password = 'bcrypt${}'.format(modm_obj.password)
-        return modm_obj
+            django_obj.password = 'bcrypt${}'.format(django_obj.password)
+        return django_obj
 
     # Legacy methods
 

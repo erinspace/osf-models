@@ -13,7 +13,8 @@ def main():
     django_blacklist_guids = []
 
     while count < total:
-        for guid in odm_blacklist[count:count+page_size]:
+        blacklist_guids = odm_blacklist[count:count + page_size]
+        for guid in blacklist_guids:
             django_blacklist_guids.append(BlackListGuid(guid=guid._id))
             count += 1
             if count % page_size == 0:
@@ -22,6 +23,7 @@ def main():
         print 'Saving {} BlacklistGuids'.format(len(django_blacklist_guids))
         BlackListGuid.objects.bulk_create(django_blacklist_guids)
         django_blacklist_guids = []
+        blacklist_guids = []
         gc.collect()
 
     print 'Django BlacklistGuids {}\nMODM BlacklistGuids {}'.format(BlackListGuid.objects.all().count(), total)
