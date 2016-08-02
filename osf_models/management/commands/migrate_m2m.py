@@ -1,3 +1,4 @@
+from __future__ import print_function
 from __future__ import unicode_literals
 
 from datetime import datetime
@@ -18,14 +19,14 @@ class Command(BaseCommand):
     help = 'Migrates data from tokumx to postgres'
 
     def handle(self, *args, **options):
-        print 'Initializing Flask App...'
+        print('Initializing Flask App...')
         init_app()
         start = datetime.now()
 
         global modm_to_django
         modm_to_django = build_pk_caches()
-        print 'Cached {} MODM to django mappings...'.format(len(
-            modm_to_django.keys()))
+        print('Cached {} MODM to django mappings...'.format(len(
+            modm_to_django.keys())))
 
         # m2m
         set_node_many_to_many_on_nodes()
@@ -35,5 +36,5 @@ class Command(BaseCommand):
         set_system_tag_many_to_many_on_users()
         set_tag_many_to_many_on_nodes()
 
-        print 'Finished in {} seconds...'.format((datetime.now() - start
-                                          ).total_seconds())
+        print('Finished in {} seconds...'.format((datetime.now() - start
+                                                  ).total_seconds()))
