@@ -1,9 +1,9 @@
 import datetime
 from django.db import models
-from osf_models.models.base import BaseModel, BSONGuidMixin
+from osf_models.models.base import BaseModel, ObjectIDMixin
 
 
-class AlternativeCitation(BSONGuidMixin, BaseModel):
+class AlternativeCitation(ObjectIDMixin, BaseModel):
     name = models.CharField(max_length=256)
     text = models.CharField(max_length=2048)
 

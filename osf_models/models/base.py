@@ -126,6 +126,39 @@ class BaseModel(models.Model):
                 raise ValidationError(*err.args)
         return super(BaseModel, self).save(*args, **kwargs)
 
+
+class ObjectIDMixin(models.Model):
+    _object_id = models.CharField(max_length=255,
+                                  unique=True,
+                                  db_index=True,
+                                  default=get_object_id)
+    @property
+    def guid(self):
+        return self._object_id
+
+    @property
+    def _id(self):
+        return PKIDStr(self._object_id, self.pk)
+
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        raise NotImplementedError('You must implement migrate_from_modm on the child model or volunteer to do it on ObjectIDMixin')
+
+
+class GuidMixin(models.Model):
+    _guid = models.OneToOneField('Guid',
+                                 default=generate_guid_instance,
+                                 unique=True,
+                                 related_name='referent_%(class)s')
+
+    @property
+    def guid(self):
+        return self._guid.guid
+
+    @property
+    def _id(self):
+        return PKIDStr(self._guid.guid, self.pk)
+
     @classmethod
     def migrate_from_modm(cls, modm_obj):
         """
@@ -154,35 +187,6 @@ class BaseModel(models.Model):
             setattr(django_obj, field, modm_value)
 
         return django_obj
-
-
-class BSONGuidMixin(models.Model):
-    _guid = models.CharField(max_length=255,
-                             unique=True,
-                             db_index=True,
-                             default=get_object_id)
-    @property
-    def guid(self):
-        return self._guid
-
-    @property
-    def _id(self):
-        return PKIDStr(self._guid, self.pk)
-
-
-class GuidMixin(models.Model):
-    _guid = models.OneToOneField('Guid',
-                                 default=generate_guid_instance,
-                                 unique=True,
-                                 related_name='referent_%(class)s')
-
-    @property
-    def guid(self):
-        return self._guid.guid
-
-    @property
-    def _id(self):
-        return PKIDStr(self._guid.guid, self.pk)
 
     class Meta:
         abstract = True

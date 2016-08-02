@@ -2,7 +2,7 @@ import datetime
 from django.contrib.postgres.fields import ArrayField
 from django.db import models
 from website import settings
-from osf_models.models.base import BaseModel, BSONGuidMixin
+from osf_models.models.base import BaseModel, ObjectIDMixin
 from osf_models.utils.datetime_aware_jsonfield import DateTimeAwareJSONField
 
 from website.addons.base import StorageAddonBase
@@ -14,7 +14,7 @@ from website.archiver import (
 )
 
 
-class ArchiveTarget(BSONGuidMixin, BaseModel):
+class ArchiveTarget(ObjectIDMixin, BaseModel):
     """Stores the results of archiving a single addon
     """
 
@@ -42,7 +42,7 @@ class ArchiveTarget(BSONGuidMixin, BaseModel):
         )
 
 
-class ArchiveJob(BSONGuidMixin, BaseModel):
+class ArchiveJob(ObjectIDMixin, BaseModel):
     # whether or not the ArchiveJob is complete (success or fail)
     done = models.BooleanField(default=False, verbose_name='completed')
     # whether or not emails have been sent for this ArchiveJob
