@@ -3,7 +3,7 @@
 import bson
 from django.db import models
 from django.db.models.manager import BaseManager
-from osf_models.models.base import BaseModel, BSONGuidMixin
+from osf_models.models.base import BaseModel, ObjectIDMixin
 from osf_models.utils.datetime_aware_jsonfield import DateTimeAwareJSONField
 
 from website.conferences.exceptions import ConferenceError
@@ -70,6 +70,6 @@ class Conference(BaseModel):
         return cls.objects.get_by_endpoint(endpoint, active)
 
 
-class MailRecord(BSONGuidMixin, BaseModel):
+class MailRecord(ObjectIDMixin, BaseModel):
     data = DateTimeAwareJSONField()
     records = models.AbstractForeignField(list=True)
