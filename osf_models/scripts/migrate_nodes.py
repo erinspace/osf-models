@@ -215,6 +215,45 @@ def save_bare_collections(page_size=20000):
         (datetime.now() - start).total_seconds()))
 
 
+def save_bare(modm_model, django_model, page_size=20000):
+    print('Starting {} {}...'.format(sys._getframe().f_code.co_name), django_model)
+    count = 0
+    start = datetime.now()
+    total = modm_model.find().count()
+
+    while count < total:
+        with transaction.atomic():
+            django_objs = []
+            page_of_modm_objects = modm_model.find()[count:count+page_size]
+            for modm_obj in page_of_modm_objects:
+                django_objs.append(django_model.migrate_from_modm(modm_obj))
+                count += 1
+                if count % page_size == 0 or count == total:
+                    then = datetime.now()
+                    starting_position = (count - page_size) if (count - page_size) > 0 else 0
+                    print('Saving {} {} through {}...'.format(django_model.__class__.__name__, starting_position, count))
+                    saved_django_objs = django_model.objects.bulk_create(django_objs)
+                    for django_instance in saved_django_objs:
+                        if isinstance(django_instance, ObjectIDMixin):
+                            modm_to_django[django_instance.guid] = django_instance.pk
+                        elif isinstance(django_instance, GuidMixin):
+                            modm_to_django[django_instance._guid.guid] = django_instance.pk
+                        # TODO Find a better way to handle oddballs
+                        elif isinstance(django_instance, Conference):
+                            modm_to_django[django_instance.endpoint] = django_instance.pk
+                        elif isinstance(django_instance, MetaSchema):
+                            modm_to_django[django_instance.guid] = django_instance.pk
+                        else:
+                            print('What is this? It hasn\'t got a guid or a _guid.')
+                            import ipdb
+                            ipdb.set_trace()
+                    now = datetime.now()
+                    print('Done with {} {} in {} seconds...'.format(len(saved_django_objs), django_model.__class__.__name__, (now - then).total_seconds()))
+                    saved_django_objs = []
+                    page_of_modm_objects = []
+                    print('Took out {} trashes'.format(gc.collect()))
+
+
 def save_bare_nodes(page_size=20000):
     print('Starting {}...'.format(sys._getframe().f_code.co_name))
     count = 0
@@ -359,8 +398,7 @@ def save_bare_tags(page_size=5000):
             tags = []
             for modm_tag in MODMTag.find().sort('-_id')[count:count +
                                                         page_size]:
-                tags.append(Tag(_id=modm_tag._id,
-                                lower=modm_tag.lower,
+                tags.append(Tag(name=modm_tag._id,
                                 system=False))
                 count += 1
                 if count % page_size == 0 or count == total:
@@ -402,8 +440,7 @@ def save_bare_system_tags(page_size=10000):
 
     system_tags = []
     for system_tag_id in unique_system_tag_ids:
-        system_tags.append(Tag(_id=system_tag_id,
-                               lower=system_tag_id.lower(),
+        system_tags.append(Tag(name=system_tag_id,
                                system=True))
 
     woot = Tag.objects.bulk_create(system_tags)
@@ -1257,8 +1294,8 @@ def build_pk_caches():
     modm_to_django = {x['_guid__guid']: x['pk'] for x in Node.objects.all().values('_guid__guid', 'pk')}
     modm_to_django.update({x['_guid__guid']: x['pk'] for x in Institution.objects.all().values('_guid__guid', 'pk')})
     modm_to_django.update({x['_guid__guid']: x['pk'] for x in OSFUser.objects.all().values('_guid__guid', 'pk')})
-    modm_to_django.update({'{}:system'.format(x['_id']): x['pk'] for x in Tag.objects.filter(system=True).values('_id', 'pk')})
-    modm_to_django.update({'{}:not_system'.format(x['_id']): x['pk'] for x in Tag.objects.filter(system=False).values('_id', 'pk')})
+    modm_to_django.update({'{}:system'.format(x['name']): x['pk'] for x in Tag.objects.filter(system=True).values('name', 'pk')})
+    modm_to_django.update({'{}:not_system'.format(x['name']): x['pk'] for x in Tag.objects.filter(system=False).values('name', 'pk')})
     modm_to_django.update({x['guid']: x['pk'] for x in Embargo.objects.all().values('guid', 'pk')})
     modm_to_django.update({x['guid']: x['pk'] for x in Retraction.objects.all().values('guid', 'pk')})
     return modm_to_django
