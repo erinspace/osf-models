@@ -77,6 +77,11 @@ class ExternalAccount(base.ObjectIDMixin, base.BaseModel):
         return '<ExternalAccount: {}/{}>'.format(self.provider,
                                                  self.provider_id)
 
+    class Meta:
+        unique_together = [
+            ('provider', 'provider_id', )
+        ]
+
 
 class ExternalProviderMeta(abc.ABCMeta):
     """Keeps track of subclasses of the ``ExternalProvider`` object"""
