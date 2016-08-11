@@ -40,7 +40,7 @@ class ApiOauth2Application(base.ObjectIDMixin, base.BaseModel):
     is_active = models.BooleanField(default=True,  # Set to False if application is deactivated
                                     db_index=True)
 
-    owner = models.ForeignKey('OSFUser', null=False, blank=False)
+    owner = models.ForeignKey('OSFUser', null=False, blank=False, on_delete=models.SET_NULL)
 
     # User-specified application descriptors
     name = models.CharField(db_index=True, blank=False, null=False, max_length=200)
@@ -112,7 +112,7 @@ class ApiOAuth2PersonalToken(base.ObjectIDMixin, base.BaseModel):
     token_id = models.CharField(max_length=70, default=functools.partial(random_string, length=70),
                                   unique=True)
 
-    owner = models.ForeignKey('OSFUser', db_index=True, blank=False, null=False)
+    owner = models.ForeignKey('OSFUser', db_index=True, blank=False, null=False, on_delete=models.SET_NULL)
 
     name = models.CharField(max_length=25, blank=False, null=False, db_index=True)
 
