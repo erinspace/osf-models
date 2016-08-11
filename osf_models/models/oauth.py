@@ -17,9 +17,9 @@ class ApiOAuth2Scope(base.ObjectIDMixin, base.BaseModel):
     Store information about recognized OAuth2 scopes. Only scopes registered under this database model can
         be requested by third parties.
     """
-    name = models.CharField(unique=True, db_index=True, null=False, blank=False)
-    description = models.CharField(null=False, blank=False)
-    is_active = models.BooleanField(default=True, index=True)  # TODO: Add mechanism to deactivate a scope?
+    name = models.CharField(max_length=50, unique=True, db_index=True, null=False, blank=False)
+    description = models.CharField(max_length=255, null=False, blank=False)
+    is_active = models.BooleanField(default=True, db_index=True)  # TODO: Add mechanism to deactivate a scope?
 
 
 class ApiOauth2Application(base.ObjectIDMixin, base.BaseModel):
@@ -111,7 +111,7 @@ class ApiOAuth2PersonalToken(base.ObjectIDMixin, base.BaseModel):
     token_id = models.CharField(max_length=70, default=functools.partial(random_string, length=70),
                                   unique=True)
 
-    owner = models.ForeignKey('User', db_index=True, blank=False, null=False)
+    owner = models.ForeignKey('OSFUser', db_index=True, blank=False, null=False)
 
     name = models.CharField(max_length=25, blank=False, null=False, db_index=True)
 
