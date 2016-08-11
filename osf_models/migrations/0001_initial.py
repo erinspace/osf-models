@@ -19,7 +19,6 @@ import osf_models.utils.base
 import osf_models.utils.datetime_aware_jsonfield
 import osf_models.utils.security
 import uuid
-import website.security
 
 
 class Migration(migrations.Migration):
@@ -127,7 +126,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('guid', models.CharField(db_index=True, default=osf_models.utils.base.get_object_id, max_length=255, unique=True)),
                 ('client_id', models.UUIDField(db_index=True, default=uuid.uuid4, unique=True)),
-                ('client_secret', models.CharField(default=functools.partial(website.security.random_string, *(), **{b'length': 40}), max_length=40)),
+                ('client_secret', models.CharField(default=functools.partial(osf_models.utils.security.random_string, *(), **{b'length': 40}), max_length=40)),
                 ('is_active', models.BooleanField(db_index=True, default=True)),
                 ('name', models.CharField(db_index=True, max_length=200)),
                 ('description', models.CharField(blank=True, max_length=1000, null=True)),

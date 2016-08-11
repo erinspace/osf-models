@@ -9,7 +9,8 @@ from osf_models.utils.base import api_v2_url
 from osf_models.utils.security import random_string
 
 from framework.auth import cas
-from website.oauth.models import generate_client_secret
+
+generate_client_secret = functools.partial(random_string, length=40)
 
 
 class ApiOAuth2Scope(base.ObjectIDMixin, base.BaseModel):
