@@ -4,6 +4,7 @@ import uuid
 import functools
 from django.apps import apps
 from django.db import models
+from django.utils import timezone
 from osf_models.models import base
 from osf_models.utils.base import api_v2_url
 from osf_models.utils.security import random_string
@@ -46,7 +47,7 @@ class ApiOauth2Application(base.ObjectIDMixin, base.BaseModel):
     name = models.CharField(db_index=True, blank=False, null=False, max_length=200)
     description = models.CharField(blank=True, null=True, max_length=1000)
 
-    date_created = models.DateTimeField(auto_now_add=True)
+    date_created = models.DateTimeField(default=timezone.now)
 
     home_url = models.URLField(blank=False, null=False)
     callback_url = models.URLField(blank=False, null=False)
