@@ -2,6 +2,8 @@ import logging
 import random
 from datetime import datetime
 
+from django.contrib.contenttypes.fields import GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
 import modularodm.exceptions
@@ -138,12 +140,37 @@ class BaseModel(models.Model):
         return django_obj
 
 
+class ReferentDescriptor(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, instance=None, owner=None):
+        import ipdb
+        ipdb.set_trace()
+        return instance.content_type.get_object_for_this_type(_guid_id=instance.pk)
+
+    def __set__(self, instance, value):
+        import ipdb
+        ipdb.set_trace()
+        new_content_type = ContentType.objects.get_for_model(value)
+        value._guid = instance
+        instance.content_type = new_content_type
+
+
+class ReferentField(GenericRelation):
+    def contribute_to_class(self, cls, name='referent', **kwargs):
+        super(ReferentField, self).contribute_to_class(cls, name)
+        setattr(cls, self.name, ReferentDescriptor(self.name))
+
+
 class Guid(BaseModel):
     id = models.AutoField(primary_key=True)
     guid = models.fields.CharField(max_length=255,
                                    default=generate_guid,
                                    unique=True,
                                    db_index=True)
+    content_type = models.ForeignKey(ContentType, null=True)
+    referent = ReferentField('self')
 
     # Override load in order to load by GUID
     @classmethod
@@ -153,24 +180,6 @@ class Guid(BaseModel):
         except cls.DoesNotExist:
             return None
 
-    @property
-    def referent(self):
-        """The model instance that this Guid refers to. May return an instance of
-        any model that inherits from GuidMixin.
-        """
-        # Because the related_name for '_guid' is dynamic (e.g. 'referent_osfuser'), we need to check each one-to-one field
-        # until we find a match
-        referent_fields = (each for each in self._meta.get_fields() if each.one_to_one and each.name.startswith('referent'))
-        for relationship in referent_fields:
-            try:
-                return getattr(self, relationship.name)
-            except relationship.related_model.DoesNotExist:
-                continue
-        return None
-
-    @referent.setter
-    def referent(self, obj):
-        obj._guid = self
 
 
 class BlackListGuid(models.Model):
@@ -179,6 +188,7 @@ class BlackListGuid(models.Model):
 
 
 def generate_guid_instance():
+    # TODO For some reason guids are being created during migrations, one for every model that inherits from GuidMixin
     return Guid.objects.create().id
 
 
@@ -197,7 +207,6 @@ class MODMCompatibilityGuidQuerySet(MODMCompatibilityQuerySet):
 
     def get_by_guid(self, guid):
         return self.get(_guid__guid=guid)
-
 
 
 class ObjectIDMixin(models.Model):
@@ -248,11 +257,11 @@ class ObjectIDMixin(models.Model):
 
 
 class GuidMixin(models.Model):
-    _guid = models.OneToOneField('Guid',
+    _guid = models.ForeignKey('Guid',
                                  default=generate_guid_instance,
                                  null=True, blank=True,
-                                 unique=True,
-                                 related_name='referent_%(class)s')
+                                 # disable reverse relationships, we'll make them ourselves
+                                 related_name='+')
 
     objects = MODMCompatibilityGuidQuerySet.as_manager()
 
@@ -269,6 +278,12 @@ class GuidMixin(models.Model):
         return None
 
     _primary_key = _id
+
+
+    def save(self, *args, **kwargs):
+        # set the content type on the guid so we can reference it later
+        self._guid.content_type = ContentType.objects.get_for_model(self)
+        return super(GuidMixin, self).save(*args, **kwargs)
 
     @classmethod
     def migrate_from_modm(cls, modm_obj):
