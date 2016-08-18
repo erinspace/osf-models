@@ -145,13 +145,9 @@ class ReferentDescriptor(object):
         self.name = name
 
     def __get__(self, instance=None, owner=None):
-        import ipdb
-        ipdb.set_trace()
         return instance.content_type.get_object_for_this_type(_guid_id=instance.pk)
 
     def __set__(self, instance, value):
-        import ipdb
-        ipdb.set_trace()
         new_content_type = ContentType.objects.get_for_model(value)
         value._guid = instance
         instance.content_type = new_content_type
