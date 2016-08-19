@@ -2,7 +2,7 @@ import logging
 import random
 from datetime import datetime
 
-from django.contrib.contenttypes.fields import GenericRelation
+from django.contrib.contenttypes.fields import GenericRelation, GenericForeignKey
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
@@ -140,25 +140,6 @@ class BaseModel(models.Model):
         return django_obj
 
 
-class ReferentDescriptor(object):
-    def __init__(self, name):
-        self.name = name
-
-    def __get__(self, instance=None, owner=None):
-        return instance.content_type.get_object_for_this_type(_guid_id=instance.pk)
-
-    def __set__(self, instance, value):
-        new_content_type = ContentType.objects.get_for_model(value)
-        value._guid = instance
-        instance.content_type = new_content_type
-
-
-class ReferentField(GenericRelation):
-    def contribute_to_class(self, cls, name='referent', **kwargs):
-        super(ReferentField, self).contribute_to_class(cls, name)
-        setattr(cls, self.name, ReferentDescriptor(self.name))
-
-
 class Guid(BaseModel):
     id = models.AutoField(primary_key=True)
     guid = models.fields.CharField(max_length=255,
@@ -166,7 +147,8 @@ class Guid(BaseModel):
                                    unique=True,
                                    db_index=True)
     content_type = models.ForeignKey(ContentType, null=True)
-    referent = ReferentField('self')
+    object_id = models.PositiveIntegerField(null=True)
+    referent = GenericForeignKey()
 
     # Override load in order to load by GUID
     @classmethod
@@ -182,10 +164,6 @@ class BlackListGuid(models.Model):
     id = models.AutoField(primary_key=True)
     guid = models.fields.CharField(max_length=255, unique=True, db_index=True)
 
-
-def generate_guid_instance():
-    # TODO For some reason guids are being created during migrations, one for every model that inherits from GuidMixin
-    return Guid.objects.create().id
 
 
 class PKIDStr(str):
@@ -252,12 +230,39 @@ class ObjectIDMixin(models.Model):
         abstract = True
 
 
+def generate_guid_instance(object_id, content_type):
+    # TODO For some reason guids are being created during migrations, one for every model that inherits from GuidMixin
+    return Guid.objects.create(object_id=object_id, content_type=content_type)
+
+
+class AutoGuidDescriptor(object):
+    def __init__(self, name):
+        self.name = name
+
+    def __get__(self, instance=None, owner=None):
+        if getattr(instance, '{}_fk'.format(self.name)) is None:
+            setattr(instance, '{}_fk'.format(self.name),
+                    generate_guid_instance(instance.pk, ContentType.objects.get_for_model(instance)))
+        return getattr(instance, '{}_fk'.format(self.name))
+
+    def __set__(self, instance, value):
+        value.content_type = ContentType.objects.get_for_model(instance)
+        value.object_id = instance.pk
+        value.save()
+
+
+class AutoGuidField(GenericRelation):
+    def contribute_to_class(self, cls, name, **kwargs):
+        super(AutoGuidField, self).contribute_to_class(cls, name)
+        setattr(cls, name, AutoGuidDescriptor(name))
+
+
 class GuidMixin(models.Model):
-    _guid = models.ForeignKey('Guid',
-                                 default=generate_guid_instance,
-                                 null=True, blank=True,
+    _guid_fk = models.ForeignKey('Guid', blank=True, null=True,
                                  # disable reverse relationships, we'll make them ourselves
-                                 related_name='+')
+                                 related_name='+',
+                                 on_delete=models.SET_NULL)
+    _guid = AutoGuidField('_guid')
 
     objects = MODMCompatibilityGuidQuerySet.as_manager()
 
@@ -277,8 +282,9 @@ class GuidMixin(models.Model):
 
 
     def save(self, *args, **kwargs):
-        # set the content type on the guid so we can reference it later
+        self._guid.object_id = self.pk
         self._guid.content_type = ContentType.objects.get_for_model(self)
+        self._guid.save()
         return super(GuidMixin, self).save(*args, **kwargs)
 
     @classmethod
