@@ -2,7 +2,8 @@ import itertools
 import logging
 import urlparse
 
-from django.apps import apps
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.dispatch import receiver
@@ -50,7 +51,7 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin, Taggable, Logga
     the same table and will be differentiated by the `type` column.
     """
 
-    #: Whether this is a pointer or not
+    #: Whether this is a node link or not
     primary = True
 
     CATEGORY_MAP = {
@@ -104,11 +105,21 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin, Taggable, Logga
     is_deleted = models.BooleanField(default=False, db_index=True)
     node_license = models.ForeignKey('NodeLicenseRecord', related_name='nodes',
                                      on_delete=models.SET_NULL, null=True, blank=True)
+
     parent_node = models.ForeignKey('self',
-                                    related_name='nodes',
+                                    related_name='subnodes',
                                     on_delete=models.SET_NULL,
                                     null=True, blank=True)
-    # permissions = Permissions are now on contributors
+
+    @property
+    def nodes(self):
+        return itertools.chain(self.subnodes.all(), self.node_links.all())
+
+    # content_type = models.ForeignKey(ContentType, null=True, blank=True)
+    # object_id = models.PositiveIntegerField(null=True, blank=True)
+    # parent_node = GenericForeignKey()
+    # nodes = GenericRelation('AbstractNode')
+
     piwik_site_id = models.IntegerField(null=True, blank=True)
     public_comments = models.BooleanField(default=True)
     primary_institution = models.ForeignKey(
@@ -647,6 +658,18 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin, Taggable, Logga
         return self.private_links.filter(is_deleted=True).values_list('key', flat=True)
 
     @property
+    def has_node_links_recursive(self):
+        """Recursively checks whether the current node or any of its nodes
+        contains a pointer.
+        """
+        if self.nodes_pointer:
+            return True
+        for node in self.nodes_primary:
+            if node.has_node_links_recursive:
+                return True
+        return False
+
+    @property
     def _root(self):
         if self.parent_node:
             return self.parent_node._root
@@ -802,6 +825,14 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin, Taggable, Logga
                 for descendant in node.get_descendants_recursive(include):
                     if include(descendant):
                         yield descendant
+
+    @property
+    def nodes_primary(self):
+        return [
+            node
+            for node in self.nodes.all()
+            if node.primary
+        ]
 
     def node_and_primary_descendants(self):
         """Return an iterator for a node and all of its primary (non-pointer) descendants.
