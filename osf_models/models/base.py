@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
 import modularodm.exceptions
 import pytz
+from django.db.models import Q
 
 from osf_models.exceptions import ValidationError
 from osf_models.modm_compat import to_django_query, Q
@@ -55,6 +56,8 @@ class BaseModel(models.Model):
     """Base model that acts makes subclasses mostly compatible with the
     modular-odm ``StoredObject`` interface.
     """
+
+    migration_page_size = 20000
 
     objects = MODMCompatibilityQuerySet.as_manager()
 
@@ -131,6 +134,11 @@ class BaseModel(models.Model):
         :return:
         """
         django_obj = cls()
+
+
+        # TODO make this work with new Guid model after rebase.
+        guid = Guid.objects.filter(Q(guid=modm_obj._id))
+        django_obj.guid = guid
 
         local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation])
 
@@ -220,14 +228,46 @@ class Guid(BaseModel):
     def referent(self, obj):
         obj.guid = self
 
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        """
+        Given a modm Guid make a django Guid
 
-class BlackListGuid(models.Model):
+        :param modm_obj:
+        :return:
+        """
+        django_obj = cls()
+
+        django_obj.guid = modm_obj._id
+
+        return django_obj
+
+
+class BlackListGuid(BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'framework.guid.model.BlacklistGuid'
     modm_query = None
     # /TODO DELETE ME POST MIGRATION
     id = models.AutoField(primary_key=True)
     guid = models.fields.CharField(max_length=255, unique=True, db_index=True)
+
+    @property
+    def _id(self):
+        return self.guid
+
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        """
+        Given a modm BlacklistGuid make a django BlackListGuid
+
+        :param modm_obj:
+        :return:
+        """
+        django_obj = cls()
+
+        django_obj.guid = modm_obj._id
+
+        return django_obj
 
 
 def generate_guid_instance():

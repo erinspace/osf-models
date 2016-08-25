@@ -10,7 +10,7 @@ from osf_models.models.validators import validate_subscription_type
 from website.notifications.constants import NOTIFICATION_TYPES
 
 
-class NotificationSubscription(BaseIDMixin, BaseModel):
+class NotificationSubscription(BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.notifications.model.NotificationSubscription'
     modm_query = None

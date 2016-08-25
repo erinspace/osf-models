@@ -7,6 +7,9 @@ import urlparse
 
 from django.apps import apps
 from django.contrib.contenttypes.fields import GenericRelation
+from datetime import datetime
+
+import pytz
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
 from django.db.models.signals import post_save, pre_save
@@ -1234,6 +1237,34 @@ class Node(AbstractNode):
         MQ('is_registration', 'eq', False),
         MQ('is_collection', 'eq', False),
     ])
+
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        """
+        Given a modm object, make a django object with the same local fields.
+
+        This is a base method that may work for simple objects. It should be customized in the child class if it
+        doesn't work.
+        :param modm_obj:
+        :return:
+        """
+        django_obj = cls()
+        bad_names = ['institution_logo_name']
+        local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation and x.name not in bad_names])
+
+        intersecting_fields = set(modm_obj.to_storage().keys()).intersection(
+            set(local_django_fields))
+
+        for field in intersecting_fields:
+            modm_value = getattr(modm_obj, field)
+            if modm_value is None:
+                continue
+            if isinstance(modm_value, datetime):
+                modm_value = pytz.utc.localize(modm_value)
+            setattr(django_obj, field, modm_value)
+
+        return django_obj
+
     # /TODO DELETE ME POST MIGRATION
 
     @property
