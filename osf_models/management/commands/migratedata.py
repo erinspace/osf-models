@@ -1,12 +1,13 @@
+import gc
 import importlib
 import sys
 
-import gc
-from django.core.management import BaseCommand
 from django.apps import apps
+from django.core.management import BaseCommand
 from django.db import transaction
 from django.utils import timezone
-from osf_models.models.base import ObjectIDMixin, GuidMixin
+from osf_models.models import ApiOAuth2Scope
+from osf_models.models.contributor import AbstractBaseContributor
 from osf_models.scripts.migrate_nodes import build_pk_caches
 
 global modm_to_django
@@ -44,7 +45,7 @@ def save_bare_models(modm_queryset, django_model, page_size=20000):
                         modm_to_django[django_instance._id] = django_instance.pk
                     print('Done with {} {} in {} seconds...'.format(len(saved_django_objects),
                                                                     django_model._meta.model.__name__, (
-                                                                    timezone.now() - page_finish_time).total_seconds()))
+                                                                        timezone.now() - page_finish_time).total_seconds()))
                     saved_django_objects = []
                     page_of_modm_objects = []
                     print('Took out {} trashes'.format(gc.collect()))
@@ -58,6 +59,16 @@ class Command(BaseCommand):
         # TODO Handle contributors, they're not a direct 1-to-1 they'll need some love
 
         models = apps.get_app_config('osf_models').get_models(include_auto_created=False)
-        for model in models:
-            modm_model = importlib.import_module(model.modm_model_path)
-            modm_queryset = modm_model.find(model.modm_query)
+        for django_model in models:
+
+            if issubclass(django_model, AbstractBaseContributor) \
+                    or django_model is ApiOAuth2Scope \
+                    or not hasattr(django_model, 'modm_model_path'):
+                continue
+            module_path, model_name = django_model.modm_model_path.rsplit('.', 1)
+            modm_module = importlib.import_module(module_path)
+            modm_model = getattr(modm_module, model_name)
+            modm_queryset = modm_model.find(django_model.modm_query)
+            # save_bare_models(modm_queryset, django_model)
+            print(modm_queryset.count())
+            print(modm_model)

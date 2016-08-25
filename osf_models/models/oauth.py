@@ -37,7 +37,7 @@ class ApiOAuth2Application(base.ObjectIDMixin, base.BaseModel):
     """
 
     # TODO DELETE ME POST MIGRATION
-    modm_model_path = 'website.oauth2.models.ApiOAuth2Application'
+    modm_model_path = 'website.oauth.models.ApiOAuth2Application'
     modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
