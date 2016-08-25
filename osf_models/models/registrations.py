@@ -35,7 +35,7 @@ class RegistrationManager(models.Manager):
 class Registration(AbstractNode):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.Node'
-    modm_queryset = MQ('is_registration', 'eq', True)
+    modm_query = MQ('is_registration', 'eq', True)
     # /TODO DELETE ME POST MIGRATION
     objects = RegistrationManager()
 
@@ -356,7 +356,7 @@ class DraftRegistrationLog(ObjectIDMixin, BaseModel):
     """
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.DraftRegistrationLog'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     date = models.DateTimeField()  # auto_add=True)
     action = models.CharField(max_length=255)
@@ -377,7 +377,7 @@ class DraftRegistrationLog(ObjectIDMixin, BaseModel):
 class DraftRegistration(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.DraftRegistration'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     URL_TEMPLATE = settings.DOMAIN + 'project/{node_id}/drafts/{draft_id}'
 

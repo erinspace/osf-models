@@ -20,7 +20,7 @@ class ArchiveTarget(ObjectIDMixin, BaseModel):
 
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.archiver.model.ArchiveTarget'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
 
@@ -52,7 +52,7 @@ class ArchiveJob(ObjectIDMixin, BaseModel):
 
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.archiver.model.ArchiveJob'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
     # whether or not the ArchiveJob is complete (success or fail)

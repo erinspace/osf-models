@@ -11,7 +11,7 @@ from osf_models.models.mixins import Loggable
 class Institution(Loggable, base.GuidMixin, base.BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.institutions.model.Institution'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
     # TODO Remove null=True for things that shouldn't be nullable

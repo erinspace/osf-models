@@ -43,7 +43,7 @@ class ExternalAccount(base.ObjectIDMixin, base.BaseModel):
 
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.oauth.models.ExternalAccount'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
     # The OAuth credentials. One or both of these fields should be populated.

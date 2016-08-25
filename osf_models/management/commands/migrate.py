@@ -1,3 +1,4 @@
+import importlib
 import sys
 
 import gc
@@ -57,5 +58,6 @@ class Command(BaseCommand):
         # TODO Handle contributors, they're not a direct 1-to-1 they'll need some love
 
         models = apps.get_app_config('osf_models').get_models(include_auto_created=False)
-        # for model in models:
-
+        for model in models:
+            modm_model = importlib.import_module(model.modm_model_path)
+            modm_queryset = modm_model.find(model.modm_query)

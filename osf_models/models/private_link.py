@@ -9,7 +9,7 @@ from osf_models.models.base import BaseModel, ObjectIDMixin
 class PrivateLink(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.PrivateLink'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     date_created = models.DateTimeField(default=timezone.now)
     key = models.CharField(max_length=512, null=False, unique=True, blank=False)

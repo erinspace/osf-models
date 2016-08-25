@@ -9,7 +9,7 @@ class Identifier(ObjectIDMixin, BaseModel):
 
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.identifiers.model.Identifier'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
     # object to which the identifier points

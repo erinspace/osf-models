@@ -6,7 +6,7 @@ from osf_models.models.base import BaseModel, ObjectIDMixin
 class AlternativeCitation(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.AlternativeCitation'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     name = models.CharField(max_length=256)
     text = models.CharField(max_length=2048)
@@ -27,7 +27,7 @@ class CitationStyle(BaseModel):
 
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.citations.models.CitationStyle'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
     # The name of the citation file, sans extension

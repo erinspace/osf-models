@@ -1230,7 +1230,7 @@ class Node(AbstractNode):
 
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.Node'
-    modm_queryset = functools.reduce(operator.and_, [
+    modm_query = functools.reduce(operator.and_, [
         MQ('is_registration', 'eq', False),
         MQ('is_collection', 'eq', False),
     ])
@@ -1289,7 +1289,7 @@ def set_parent(sender, instance, *args, **kwargs):
 class Collection(NodeLinkMixin, GuidMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.Node'
-    modm_queryset = functools.reduce(operator.and_, [
+    modm_query = functools.reduce(operator.and_, [
         MQ('is_registration', 'eq', False),
         MQ('is_collection', 'eq', True),
     ])

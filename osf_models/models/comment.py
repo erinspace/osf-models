@@ -26,7 +26,7 @@ class CommentableMixin(object):
 class Comment(GuidMixin, SpamMixin, CommentableMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.Comment'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     __guid_min_length__ = 12
 

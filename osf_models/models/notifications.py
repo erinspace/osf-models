@@ -13,7 +13,7 @@ from website.notifications.constants import NOTIFICATION_TYPES
 class NotificationSubscription(BaseIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.notifications.model.NotificationSubscription'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     _id = models.CharField(max_length=50, db_index=True)  # pxyz_wiki_updated, uabc_comment_replies
 
@@ -116,7 +116,7 @@ class NotificationSubscription(BaseIDMixin, BaseModel):
 class NotificationDigest(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.notifications.model.NotificationDigest'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     user = models.ForeignKey('OSFUser', null=True, blank=True)
     timestamp = models.DateTimeField()

@@ -7,7 +7,7 @@ from osf_models.models.base import BaseModel, ObjectIDMixin
 class Session(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'framework.sessions.model.Session'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     date_created = models.DateTimeField(auto_now_add=True)
     date_modified = models.DateTimeField(auto_now=True)

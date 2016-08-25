@@ -5,7 +5,7 @@ from osf_models.utils.datetime_aware_jsonfield import DateTimeAwareJSONField
 class MetaSchema(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.MetaSchema'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
     name = models.CharField(max_length=255)

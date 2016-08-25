@@ -21,7 +21,7 @@ class ApiOAuth2Scope(base.ObjectIDMixin, base.BaseModel):
     """
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.oauth.models.ApiOAuth2Scope'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
     name = models.CharField(max_length=50, unique=True, db_index=True, null=False, blank=False)
@@ -38,7 +38,7 @@ class ApiOAuth2Application(base.ObjectIDMixin, base.BaseModel):
 
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.oauth2.models.ApiOAuth2Application'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
     # Client ID and secret. Use separate ID field so ID format doesn't
@@ -121,7 +121,7 @@ class ApiOAuth2PersonalToken(base.ObjectIDMixin, base.BaseModel):
     """
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.oauth.models.ApiOAuth2PersonalToken'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     # Name of the field being `token_id` is a CAS requirement.
     # This is the actual value of the token that's used to authenticate

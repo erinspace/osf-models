@@ -13,7 +13,7 @@ from osf_models.utils.datetime_aware_jsonfield import DateTimeAwareJSONField
 class QueuedMail(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.mails.queued_mails.QueuedMail'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     user = models.ForeignKey('OSFUser', db_index=True, null=True)
     to_addr = models.CharField(max_length=255)

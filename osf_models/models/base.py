@@ -157,7 +157,7 @@ class Guid(BaseModel):
 
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'framework.guid.model.Guid'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
     id = models.AutoField(primary_key=True)
@@ -224,7 +224,7 @@ class Guid(BaseModel):
 class BlackListGuid(models.Model):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'framework.guid.model.BlacklistGuid'
-    modm_queryset = None
+    modm_query = None
     # /TODO DELETE ME POST MIGRATION
     id = models.AutoField(primary_key=True)
     guid = models.fields.CharField(max_length=255, unique=True, db_index=True)
