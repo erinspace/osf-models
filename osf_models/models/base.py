@@ -154,6 +154,12 @@ class Guid(BaseModel):
     Each ID field (e.g. 'guid', 'object_id') MUST have an accompanying method, named with
     'initialize_<ID type>' (e.g. 'initialize_guid') that generates and sets the field.
     """
+
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'framework.guid.model.Guid'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
+
     id = models.AutoField(primary_key=True)
     guid = models.fields.CharField(max_length=255,
                                    unique=True,
@@ -216,6 +222,10 @@ class Guid(BaseModel):
 
 
 class BlackListGuid(models.Model):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'framework.guid.model.BlacklistGuid'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     id = models.AutoField(primary_key=True)
     guid = models.fields.CharField(max_length=255, unique=True, db_index=True)
 

@@ -9,6 +9,11 @@ from osf_models.models.mixins import Loggable
 
 
 class Institution(Loggable, base.GuidMixin, base.BaseModel):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.institutions.model.Institution'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
+
     # TODO Remove null=True for things that shouldn't be nullable
     auth_url = models.URLField(null=True)
     banner_name = models.CharField(max_length=255, null=True)

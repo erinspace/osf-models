@@ -22,7 +22,10 @@ VIEW_PROJECT_URL_TEMPLATE = osf_settings.DOMAIN + '{node_id}/'
 
 class Sanction(ObjectIDMixin, BaseModel):
     """Sanction class is a generic way to track approval states"""
-
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.sanctions.Sanction'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     # Neither approved not cancelled
     UNAPPROVED = 'unapproved'
     # Has approval
@@ -122,6 +125,10 @@ class Sanction(ObjectIDMixin, BaseModel):
 
 
 class TokenApprovableSanction(Sanction):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.sanctions.TokenApprovableSanction'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     def _validate_authorizer(self, user):
         """Subclasses may choose to provide extra restrictions on who can be an authorizer
 
@@ -246,6 +253,10 @@ class TokenApprovableSanction(Sanction):
 
 
 class EmailApprovableSanction(TokenApprovableSanction):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.sanctions.EmailApprovableSanction'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     AUTHORIZER_NOTIFY_EMAIL_TEMPLATE = None
     NON_AUTHORIZER_NOTIFY_EMAIL_TEMPLATE = None
 
@@ -372,7 +383,10 @@ class PreregCallbackMixin(object):
 
 class Embargo(PreregCallbackMixin, EmailApprovableSanction):
     """Embargo object for registrations waiting to go public."""
-
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.sanctions.Embargo'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     DISPLAY_NAME = 'Embargo'
     SHORT_NAME = 'embargo'
 
@@ -540,7 +554,10 @@ class Retraction(EmailApprovableSanction):
     Externally (specifically in user-facing language) retractions should be referred to as "Withdrawals", i.e.
     "Retract Registration" -> "Withdraw Registration", "Retracted" -> "Withdrawn", etc.
     """
-
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.sanctions.Retraction'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     DISPLAY_NAME = 'Retraction'
     SHORT_NAME = 'retraction'
 
@@ -671,6 +688,10 @@ class Retraction(EmailApprovableSanction):
 
 
 class RegistrationApproval(PreregCallbackMixin, EmailApprovableSanction):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.sanctions.RegistrationApproval'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     DISPLAY_NAME = 'Approval'
     SHORT_NAME = 'registration_approval'
 
@@ -809,6 +830,10 @@ class RegistrationApproval(PreregCallbackMixin, EmailApprovableSanction):
 
 
 class DraftRegistrationApproval(Sanction):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.sanctions.DraftRegistrationApproval'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     mode = Sanction.ANY
 
     # Since draft registrations that require approval are not immediately registered,
@@ -882,6 +907,10 @@ class DraftRegistrationApproval(Sanction):
 
 
 class EmbargoTerminationApproval(EmailApprovableSanction):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.sanctions.EmbargoTerminationApproval'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     DISPLAY_NAME = 'Embargo Termination Request'
     SHORT_NAME = 'embargo_termination_approval'
 

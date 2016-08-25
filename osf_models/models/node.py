@@ -1,5 +1,7 @@
+import functools
 import itertools
 import logging
+import operator
 import re
 import urlparse
 
@@ -7,16 +9,35 @@ from django.apps import apps
 from django.contrib.contenttypes.fields import GenericRelation
 from django.core.exceptions import ValidationError
 from django.db import models, transaction
-from django.dispatch import receiver
 from django.db.models.signals import post_save, pre_save
+from django.dispatch import receiver
 from django.utils import timezone
 from keen import scoped_keys
+from modularodm import Q as MQ
+from osf_models.apps import AppConfig as app_config
+from osf_models.models.citation import AlternativeCitation
+from osf_models.models.contributor import Contributor, RecentlyAddedContributor
+from osf_models.models.identifiers import Identifier
 from osf_models.models.identifiers import IdentifierMixin
+from osf_models.models.mixins import Loggable, Taggable, AddonModelMixin, NodeLinkMixin
+from osf_models.models.nodelog import NodeLog
+from osf_models.models.sanctions import RegistrationApproval
+from osf_models.models.user import OSFUser
+from osf_models.models.validators import validate_title
+from osf_models.modm_compat import Q
+from osf_models.utils.auth import Auth, get_user
+from osf_models.utils.base import api_v2_url
+from osf_models.utils.datetime_aware_jsonfield import DateTimeAwareJSONField
 from typedmodels.models import TypedModel
 
-# OSF imports
 from framework import status
+from framework.exceptions import PermissionsError
+from framework.sentry import log_exception
+from website import settings
 from website.exceptions import UserNotAffiliatedError, NodeStateError
+from website.project import signals as project_signals
+from website.util import api_url_for
+from website.util import web_url_for
 from website.util.permissions import (
     expand_permissions,
     reduce_permissions,
@@ -26,27 +47,6 @@ from website.util.permissions import (
     WRITE,
     ADMIN,
 )
-from website.util import web_url_for
-from website.util import api_url_for
-from website import settings
-from framework.sentry import log_exception
-from framework.exceptions import PermissionsError
-from website.project import signals as project_signals
-
-from osf_models.apps import AppConfig as app_config
-from osf_models.models.nodelog import NodeLog
-from osf_models.models.citation import AlternativeCitation
-from osf_models.models.contributor import Contributor, RecentlyAddedContributor
-from osf_models.models.mixins import Loggable, Taggable, AddonModelMixin, NodeLinkMixin
-from osf_models.models.identifiers import Identifier
-from osf_models.models.user import OSFUser
-from osf_models.models.sanctions import RegistrationApproval
-from osf_models.models.validators import validate_title
-from osf_models.utils.auth import Auth, get_user
-from osf_models.utils.base import api_v2_url
-from osf_models.utils.datetime_aware_jsonfield import DateTimeAwareJSONField
-from osf_models.modm_compat import Q
-
 from .base import BaseModel, GuidMixin
 
 logger = logging.getLogger(__name__)
@@ -1227,6 +1227,15 @@ class Node(AbstractNode):
 
     FYI: Behaviors common between Registration and Node should be on the parent class.
     """
+
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.model.Node'
+    modm_queryset = functools.reduce(operator.and_, [
+        MQ('is_registration', 'eq', False),
+        MQ('is_collection', 'eq', False),
+    ])
+    # /TODO DELETE ME POST MIGRATION
+
     @property
     def is_collection(self):
         """Compat with v1."""
@@ -1276,7 +1285,16 @@ def set_parent(sender, instance, *args, **kwargs):
     if getattr(instance, '_parent', None):
         instance.parent_node = instance._parent
 
+
 class Collection(NodeLinkMixin, GuidMixin, BaseModel):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.model.Node'
+    modm_queryset = functools.reduce(operator.and_, [
+        MQ('is_registration', 'eq', False),
+        MQ('is_collection', 'eq', True),
+    ])
+    # /TODO DELETE ME POST MIGRATION
+
     # TODO: Uncomment auto_* attributes after migration is complete
     date_created = models.DateTimeField(null=False, default=timezone.now)  # auto_now_add=True)
     date_modified = models.DateTimeField(null=True, blank=True,

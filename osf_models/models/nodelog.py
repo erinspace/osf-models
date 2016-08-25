@@ -7,6 +7,10 @@ from osf_models.utils.datetime_aware_jsonfield import DateTimeAwareJSONField
 
 
 class NodeLog(ObjectIDMixin, BaseModel):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.project.model.NodeLog'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     DATE_FORMAT = '%m/%d/%Y %H:%M UTC'
 
     # Log action constants -- NOTE: templates stored in log_templates.mako

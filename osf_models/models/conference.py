@@ -36,6 +36,10 @@ class ConferenceManager(models.Manager):
 
 
 class Conference(BaseModel):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.conferences.model.Conference'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     #: Determines the email address for submission and the OSF url
     # Example: If endpoint is spsp2014, then submission email will be
     # spsp2014-talk@osf.io or spsp2014-poster@osf.io and the OSF url will
@@ -74,6 +78,10 @@ class Conference(BaseModel):
 
 
 class MailRecord(ObjectIDMixin, BaseModel):
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.conferences.model.MailRecord'
+    modm_queryset = None
+    # /TODO DELETE ME POST MIGRATION
     data = DateTimeAwareJSONField()
     nodes_created = models.ManyToManyField('Node')
     users_created = models.ManyToManyField('OSFUser')
