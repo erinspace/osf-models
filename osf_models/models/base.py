@@ -135,10 +135,10 @@ class BaseModel(models.Model):
         """
         django_obj = cls()
 
-
-        # TODO make this work with new Guid model after rebase.
-        guid = Guid.objects.filter(Q(guid=modm_obj._id))
-        django_obj.guid = guid
+        # check for a matching guid in the guid table, attach if it exists else ... leave it
+        guid = Guid.objects.filter(Q(guid=modm_obj._id) | Q(object_id=modm_obj._id)).first()
+        if guid is not None:
+            django_obj.guid = guid
 
         local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation])
 
@@ -166,6 +166,7 @@ class Guid(BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'framework.guid.model.Guid'
     modm_query = None
+    migration_page_size = 500000
     # /TODO DELETE ME POST MIGRATION
 
     id = models.AutoField(primary_key=True)
@@ -186,6 +187,11 @@ class Guid(BaseModel):
 
     def initialize_object_id(self, instance):
         self.object_id = generate_object_id()
+
+
+    @property
+    def _id(self):
+        return self.guid or self.object_id
 
     # Override load in order to load by GUID
     @classmethod
@@ -247,6 +253,7 @@ class BlackListGuid(BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'framework.guid.model.BlacklistGuid'
     modm_query = None
+    migration_page_size = 500000
     # /TODO DELETE ME POST MIGRATION
     id = models.AutoField(primary_key=True)
     guid = models.fields.CharField(max_length=255, unique=True, db_index=True)
@@ -339,7 +346,7 @@ class BaseIDMixin(models.Model):
         kwargs = {cls.primary_identifier_name: modm_obj._id}
         guid, created = Guid.objects.get_or_create(**kwargs)
         if created:
-            logger.debug('Created a new Guid for {}'.format(modm_obj))
+            logger.debug('Created a new Guid for {} ({})'.format(modm_obj.__class__.__name__, modm_obj._id))
         django_obj = cls()
         django_obj.guid = guid
 

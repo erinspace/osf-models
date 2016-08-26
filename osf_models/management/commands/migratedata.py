@@ -2,19 +2,23 @@ import gc
 import importlib
 import sys
 
+import ipdb
 from django.apps import apps
 from django.core.management import BaseCommand
 from django.db import transaction
 from django.utils import timezone
+from modularodm import Q as MQ
 from osf_models.models import ApiOAuth2Scope
 from osf_models.models import BlackListGuid
+from osf_models.models import Guid
 from osf_models.models import NodeLog
 from osf_models.models import Tag
 from osf_models.models.contributor import AbstractBaseContributor
 from osf_models.scripts.migrate_nodes import build_pk_caches
-from website.models import Node as MODMNode
+
 from framework.auth.core import User as MODMUser
-from modularodm import Q as MQ
+from website.files.models import StoredFileNode
+from website.models import Node as MODMNode
 
 global modm_to_django
 modm_to_django = build_pk_caches()
@@ -22,7 +26,7 @@ print('Cached {} MODM to django mappings...'.format(len(modm_to_django.keys())))
 
 
 def save_bare_models(modm_queryset, django_model, page_size=20000):
-    print('Starting {} on ...'.format(sys._getframe().f_code.co_name), django_model._meta.model.__name__)
+    print('Starting {} on {}...'.format(sys._getframe().f_code.co_name, django_model._meta.model.__name__))
     count = 0
     total = modm_queryset.count()
     hashes = list()
@@ -37,11 +41,7 @@ def save_bare_models(modm_queryset, django_model, page_size=20000):
             page_of_modm_objects = modm_queryset.sort('-_id')[offset:limit]
 
             for modm_obj in page_of_modm_objects:
-                try:
-                    django_instance = django_model.migrate_from_modm(modm_obj)
-                except BaseException as ex:
-                    import ipdb
-                    ipdb.set_trace()
+                django_instance = django_model.migrate_from_modm(modm_obj)
                 if django_instance._natural_key() is not None:
                     # if there's a natural key
                     if django_instance._natural_key() not in hashes:
@@ -100,14 +100,63 @@ def save_bare_system_tags(page_size=10000):
         (timezone.now() - start).total_seconds()))
 
 
+def register_nonexistent_models_with_modm():
+    """
+    There are guids refering to models that no longer exist.
+    We can't delete the guids because then they could be regenerated.
+    These models are registered so that anything at all will work.
+    :return:
+    """
+    class DropboxFile(StoredFileNode):
+        pass
+
+    class OSFStorageGuidFile(StoredFileNode):
+        pass
+
+    class OSFGuidFile(StoredFileNode):
+        pass
+
+    class GithubGuidFile(StoredFileNode):
+        pass
+
+    class NodeFile(StoredFileNode):
+        pass
+
+    class BoxFile(StoredFileNode):
+        pass
+
+    class FigShareGuidFile(StoredFileNode):
+        pass
+
+    class S3GuidFile(StoredFileNode):
+        pass
+
+    class DataverseFile(StoredFileNode):
+        pass
+
+    DataverseFile.register_collection()
+    NodeFile.register_collection()
+    S3GuidFile.register_collection()
+    FigShareGuidFile.register_collection()
+    BoxFile.register_collection()
+    GithubGuidFile.register_collection()
+    OSFStorageGuidFile.register_collection()
+    OSFGuidFile.register_collection()
+    DropboxFile.register_collection()
+
 class Command(BaseCommand):
     help = 'Migrates data from tokumx to postgres'
 
     def handle(self, *args, **options):
         # TODO Handle contributors, they're not a direct 1-to-1 they'll need some love
-        # TODO GUID is throwing KeyError(u'osfstorageguidfile',
 
-        models = apps.get_app_config('osf_models').get_models(include_auto_created=False)
+        # it's either this or catch the exception and put them in the blacklistguid table
+        register_nonexistent_models_with_modm()
+
+        models = list(apps.get_app_config('osf_models').get_models(include_auto_created=False))
+        # guids first, pls
+        models.insert(0, models.pop(models.index(Guid)))
+
         for django_model in models:
             # TODO REMOVE BLACKLISTGUID FROM THIS LIST
             if issubclass(django_model, AbstractBaseContributor) \
@@ -121,11 +170,9 @@ class Command(BaseCommand):
             modm_model = getattr(modm_module, model_name)
             modm_queryset = modm_model.find(django_model.modm_query)
             page_size = django_model.migration_page_size
-            try:
+            with ipdb.launch_ipdb_on_exception():
                 save_bare_models(modm_queryset, django_model, page_size=page_size)
-            except BaseException as ex:
-                import ipdb
-                ipdb.set_trace()
+
 
         # Handle system tags, they're on nodes, they need a special migration
         save_bare_system_tags()

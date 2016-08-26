@@ -6,12 +6,13 @@ from osf_models.models import Guid
 from osf_models.models import base
 from osf_models.models.contributor import InstitutionalContributor
 from osf_models.models.mixins import Loggable
+from modularodm import Q as MQ
 
 
 class Institution(Loggable, base.GuidMixin, base.BaseModel):
     # TODO DELETE ME POST MIGRATION
-    modm_model_path = 'website.institutions.model.Institution'
-    modm_query = None
+    modm_model_path = 'website.project.model.Node'
+    modm_query = MQ('is_institution', 'eq', True)
     # /TODO DELETE ME POST MIGRATION
 
     # TODO Remove null=True for things that shouldn't be nullable
