@@ -2,12 +2,11 @@ import logging
 import random
 from datetime import datetime
 
-from django.core.exceptions import ValidationError as DjangoValidationError
-from django.db import models
 import modularodm.exceptions
 import pytz
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import models
 from django.db.models import Q
-
 from osf_models.exceptions import ValidationError
 from osf_models.modm_compat import to_django_query, Q
 from osf_models.utils.base import generate_object_id
@@ -133,12 +132,13 @@ class BaseModel(models.Model):
         :param modm_obj:
         :return:
         """
-        django_obj = cls()
+        kwargs = {cls.primary_identifier_name: modm_obj._id}
+        guid, created = Guid.objects.get_or_create(**kwargs)
+        if created:
+            logger.debug('Created a new Guid for {} ({})'.format(modm_obj.__class__.__name__, modm_obj._id))
 
-        # check for a matching guid in the guid table, attach if it exists else ... leave it
-        guid = Guid.objects.filter(Q(guid=modm_obj._id) | Q(object_id=modm_obj._id)).first()
-        if guid is not None:
-            django_obj.guid = guid
+        django_obj = cls()
+        django_obj.guid = guid
 
         local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation])
 
@@ -296,7 +296,6 @@ class BaseIDMixin(models.Model):
     __guid_min_length__ = 5
 
     guid = models.OneToOneField('Guid',
-                                 default=generate_guid_instance,
                                  null=True, blank=True,
                                  unique=True,
                                  related_name='referent_%(class)s')
