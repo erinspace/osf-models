@@ -44,3 +44,8 @@ class PrivateLink(ObjectIDMixin, BaseModel):
                       for x in self.nodes.filter(is_deleted=False)],
             'anonymous': self.anonymous
         }
+
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        modm_obj.name = modm_obj.name[:255]
+        return super(PrivateLink, cls).migrate_from_modm(modm_obj)
