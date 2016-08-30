@@ -19,7 +19,7 @@ class AlternativeCitation(ObjectIDMixin, BaseModel):
         }
 
 
-class CitationStyle(BaseModel):
+class CitationStyle(ObjectIDMixin, BaseModel):
     """Persistent representation of a CSL style.
 
     These are parsed from .csl files, so that metadata fields can be indexed.

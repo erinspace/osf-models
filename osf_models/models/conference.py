@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import json
+import re
 
 from django.db import models
 from osf_models.models.base import BaseModel, ObjectIDMixin
@@ -35,7 +37,7 @@ class ConferenceManager(models.Manager):
             raise ConferenceError('Endpoint {} not found'.format(endpoint))
 
 
-class Conference(BaseModel):
+class Conference(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.conferences.model.Conference'
     modm_query = None
@@ -67,6 +69,8 @@ class Conference(BaseModel):
 
     objects = ConferenceManager()
 
+    primary_identifier_name = 'object_id'
+
     def __repr__(self):
         return (
             '<Conference(endpoint={self.endpoint!r}, active={self.active})>'.format(self=self)
@@ -85,3 +89,9 @@ class MailRecord(ObjectIDMixin, BaseModel):
     data = DateTimeAwareJSONField()
     nodes_created = models.ManyToManyField('Node')
     users_created = models.ManyToManyField('OSFUser')
+
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        cmp = re.compile(ur'\\+u0000')
+        modm_obj.data = json.loads(re.sub(cmp, '', json.dumps(modm_obj.data)))
+        return super(MailRecord, cls).migrate_from_modm(modm_obj)
