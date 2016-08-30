@@ -17,6 +17,7 @@ from osf_models.models import Tag
 from osf_models.models.conference import MailRecord
 from osf_models.models.contributor import AbstractBaseContributor
 from osf_models.scripts.migrate_nodes import build_pk_caches
+from osf_models.utils.order_apps import get_ordered_models
 
 from framework.auth.core import User as MODMUser
 from website.files.models import StoredFileNode
@@ -211,7 +212,7 @@ class Command(BaseCommand):
         # it's either this or catch the exception and put them in the blacklistguid table
         register_nonexistent_models_with_modm()
 
-        models = list(apps.get_app_config('osf_models').get_models(include_auto_created=False))
+        models = get_ordered_models()
         # guids first, pls
         models.insert(0, models.pop(models.index(Guid)))
 
