@@ -12,7 +12,9 @@ from osf_models.models import ApiOAuth2Scope
 from osf_models.models import BlackListGuid
 from osf_models.models import Guid
 from osf_models.models import NodeLog
+from osf_models.models import Session
 from osf_models.models import Tag
+from osf_models.models.conference import MailRecord
 from osf_models.models.contributor import AbstractBaseContributor
 from osf_models.scripts.migrate_nodes import build_pk_caches
 
@@ -144,6 +146,62 @@ def register_nonexistent_models_with_modm():
     OSFGuidFile.register_collection()
     DropboxFile.register_collection()
 
+
+def merge_duplicate_users():
+    print('Starting {}...'.format(sys._getframe().f_code.co_name))
+    start = timezone.now()
+
+    from framework.mongo.handlers import database
+
+    duplicates = database.user.aggregate([
+        {
+            "$group": {
+                "_id": "$username",
+                "ids": {"$addToSet": "$_id"},
+                "count": {"$sum": 1}
+            }
+        },
+        {
+            "$match": {
+                "count": {"$gt": 1}
+            }
+        },
+        {
+            "$sort": {
+                "count": -1
+            }
+        }
+    ]).get('result')
+    # [
+    #   {
+    #       'count': 5,
+    #       '_id': 'duplicated@username.com',
+    #       'ids': [
+    #           'listo','fidst','hatma','tchth','euser','name!'
+    #       ]
+    #   }
+    # ]
+    print('Found {} duplicate usernames.'.format(len(duplicates)))
+    for duplicate in duplicates:
+        print('Found {} copies of {}'.format(len(duplicate.get('ids')), duplicate.get('_id')))
+        if duplicate.get('_id'):
+            # _id is an email address, merge users keeping the one that was logged into last
+            users = list(MODMUser.find(MQ('_id', 'in', duplicate.get('ids'))).sort('-last_login'))
+            best_match = users.pop()
+            for user in users:
+                print('Merging user {} into user {}'.format(user._id, best_match._id))
+                best_match.merge_user(user)
+        else:
+            # _id is null, set all usernames to their guid
+            users = MODMUser.find(MQ('_id', 'in', duplicate.get('ids')))
+            for user in users:
+                print('Setting username for {}'.format(user._id))
+                user.username = user._id
+                user.save()
+    print('Done with {} in {} seconds...'.format(
+        sys._getframe().f_code.co_name,
+        (timezone.now() - start).total_seconds()))
+
 class Command(BaseCommand):
     help = 'Migrates data from tokumx to postgres'
 
@@ -157,14 +215,20 @@ class Command(BaseCommand):
         # guids first, pls
         models.insert(0, models.pop(models.index(Guid)))
 
+        merge_duplicate_users()
+        # merged users get blank usernames, running it twice fixes it.
+        merge_duplicate_users()
+
         for django_model in models:
             # TODO REMOVE BLACKLISTGUID FROM THIS LIST
             if issubclass(django_model, AbstractBaseContributor) \
                     or django_model is ApiOAuth2Scope \
                     or django_model is BlackListGuid \
+                    or django_model is Session \
                     or django_model is NodeLog \
                     or not hasattr(django_model, 'modm_model_path'):
                 continue
+
             module_path, model_name = django_model.modm_model_path.rsplit('.', 1)
             modm_module = importlib.import_module(module_path)
             modm_model = getattr(modm_module, model_name)
@@ -172,7 +236,6 @@ class Command(BaseCommand):
             page_size = django_model.migration_page_size
             with ipdb.launch_ipdb_on_exception():
                 save_bare_models(modm_queryset, django_model, page_size=page_size)
-
 
         # Handle system tags, they're on nodes, they need a special migration
         save_bare_system_tags()
