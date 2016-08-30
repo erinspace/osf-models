@@ -19,11 +19,13 @@ class AlternativeCitation(ObjectIDMixin, BaseModel):
         }
 
 
-class CitationStyle(ObjectIDMixin, BaseModel):
+class CitationStyle(BaseModel):
     """Persistent representation of a CSL style.
 
     These are parsed from .csl files, so that metadata fields can be indexed.
     """
+
+    primary_identifier_name = 'object_id'
 
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.citations.models.CitationStyle'

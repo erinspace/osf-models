@@ -11,6 +11,7 @@ from website.notifications.constants import NOTIFICATION_TYPES
 
 
 class NotificationSubscription(BaseModel):
+    primary_identifier_name = '_id'
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.notifications.model.NotificationSubscription'
     modm_query = None
