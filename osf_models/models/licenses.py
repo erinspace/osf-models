@@ -78,5 +78,5 @@ class NodeLicenseRecord(ObjectIDMixin, BaseModel):
 
     @classmethod
     def migrate_from_modm(cls, modm_obj):
-        modm_obj.years = modm_obj.years[:128]
+        modm_obj.year = str(modm_obj.year)[:128]
         return super(NodeLicenseRecord, cls).migrate_from_modm(modm_obj)
