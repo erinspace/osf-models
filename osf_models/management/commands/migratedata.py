@@ -14,6 +14,7 @@ from osf_models.models import Guid
 from osf_models.models import NodeLog
 from osf_models.models import Session
 from osf_models.models import Tag
+from osf_models.models.base import ObjectIDMixin
 from osf_models.models.conference import MailRecord
 from osf_models.models.contributor import AbstractBaseContributor
 from osf_models.scripts.migrate_nodes import build_pk_caches
@@ -220,6 +221,8 @@ class Command(BaseCommand):
         # merged users get blank usernames, running it twice fixes it.
         merge_duplicate_users()
 
+
+
         for django_model in models:
             # TODO REMOVE BLACKLISTGUID FROM THIS LIST
             if issubclass(django_model, AbstractBaseContributor) \
@@ -230,10 +233,22 @@ class Command(BaseCommand):
                     or not hasattr(django_model, 'modm_model_path'):
                 continue
 
+
+
             module_path, model_name = django_model.modm_model_path.rsplit('.', 1)
             modm_module = importlib.import_module(module_path)
             modm_model = getattr(modm_module, model_name)
             modm_queryset = modm_model.find(django_model.modm_query)
+
+            # if a model inherits from objectidmixin grab all it's _ids and bulk create guids for it
+            if issubclass(django_model, ObjectIDMixin):
+                print('Bulk creating guids for {}'.format(django_model._meta.model.__name__))
+                guid_instances = [Guid(**{'object_id':obj._id}) for obj in modm_queryset]
+                print('Saving {} guids...'.format(len(guid_instances)))
+                Guid.objects.bulk_create(guid_instances)
+                del guid_instances
+                gc.collect()
+
             page_size = django_model.migration_page_size
             with ipdb.launch_ipdb_on_exception():
                 save_bare_models(modm_queryset, django_model, page_size=page_size)
