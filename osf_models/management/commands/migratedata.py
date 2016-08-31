@@ -3,30 +3,21 @@ import importlib
 import sys
 
 import ipdb
-from django.apps import apps
 from django.core.management import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 from modularodm import Q as MQ
 from osf_models.models import ApiOAuth2Scope
-from osf_models.models import BlackListGuid
 from osf_models.models import Guid
 from osf_models.models import NodeLog
-from osf_models.models import Session
 from osf_models.models import Tag
 from osf_models.models.base import ObjectIDMixin
-from osf_models.models.conference import MailRecord
 from osf_models.models.contributor import AbstractBaseContributor
-from osf_models.scripts.migrate_nodes import build_pk_caches
 from osf_models.utils.order_apps import get_ordered_models
 
 from framework.auth.core import User as MODMUser
 from website.files.models import StoredFileNode
 from website.models import Node as MODMNode
-
-global modm_to_django
-modm_to_django = build_pk_caches()
-print('Cached {} MODM to django mappings...'.format(len(modm_to_django.keys())))
 
 
 def save_bare_models(modm_queryset, django_model, page_size=20000):
@@ -63,8 +54,7 @@ def save_bare_models(modm_queryset, django_model, page_size=20000):
                     print('Saving {} {} through {}...'.format(django_model._meta.model.__name__, count - page_size,
                                                               count))
                     saved_django_objects = django_model.objects.bulk_create(django_objects)
-                    for django_instance in saved_django_objects:
-                        modm_to_django[django_instance._id] = django_instance.pk
+
                     print('Done with {} {} in {} seconds...'.format(len(saved_django_objects),
                                                                     django_model._meta.model.__name__, (
                                                                         timezone.now() - page_finish_time).total_seconds()))
@@ -221,10 +211,7 @@ class Command(BaseCommand):
         # merged users get blank usernames, running it twice fixes it.
         merge_duplicate_users()
 
-
-
         for django_model in models:
-            # TODO REMOVE BLACKLISTGUID FROM THIS LIST
             if issubclass(django_model, AbstractBaseContributor) \
                     or django_model is ApiOAuth2Scope \
                     or not hasattr(django_model, 'modm_model_path'):
@@ -236,7 +223,7 @@ class Command(BaseCommand):
             modm_queryset = modm_model.find(django_model.modm_query)
 
             # if a model inherits from objectidmixin grab all it's _ids and bulk create guids for it
-            if issubclass(django_model, ObjectIDMixin):
+            if issubclass(django_model, ObjectIDMixin) and not django_model is NodeLog:
                 print('Bulk creating guids for {}'.format(django_model._meta.model.__name__))
                 guid_instances = [Guid(**{'object_id':obj._id}) for obj in modm_queryset]
                 print('Saving {} guids...'.format(len(guid_instances)))
