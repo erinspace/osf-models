@@ -227,13 +227,8 @@ class Command(BaseCommand):
             # TODO REMOVE BLACKLISTGUID FROM THIS LIST
             if issubclass(django_model, AbstractBaseContributor) \
                     or django_model is ApiOAuth2Scope \
-                    or django_model is BlackListGuid \
-                    or django_model is Session \
-                    or django_model is NodeLog \
                     or not hasattr(django_model, 'modm_model_path'):
                 continue
-
-
 
             module_path, model_name = django_model.modm_model_path.rsplit('.', 1)
             modm_module = importlib.import_module(module_path)
@@ -246,7 +241,7 @@ class Command(BaseCommand):
                 guid_instances = [Guid(**{'object_id':obj._id}) for obj in modm_queryset]
                 print('Saving {} guids...'.format(len(guid_instances)))
                 Guid.objects.bulk_create(guid_instances)
-                del guid_instances
+                guid_instances = []
                 gc.collect()
 
             page_size = django_model.migration_page_size
