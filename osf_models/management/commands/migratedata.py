@@ -9,15 +9,51 @@ from django.utils import timezone
 from modularodm import Q as MQ
 from osf_models.models import ApiOAuth2Scope
 from osf_models.models import Guid
-from osf_models.models import NodeLog
 from osf_models.models import Tag
-from osf_models.models.base import ObjectIDMixin
+from osf_models.models.base import GuidMixin
 from osf_models.models.contributor import AbstractBaseContributor
 from osf_models.utils.order_apps import get_ordered_models
 
 from framework.auth.core import User as MODMUser
 from website.files.models import StoredFileNode
 from website.models import Node as MODMNode
+
+
+def make_guids(django_model, page_size=20000):
+    print('Starting {} on {}...'.format(sys._getframe().f_code.co_name, django_model._meta.model.__name__))
+
+    module_path, model_name = django_model.modm_model_path.rsplit('.', 1)
+    modm_module = importlib.import_module(module_path)
+    modm_model = getattr(modm_module, model_name)
+
+    count = 0
+    total = modm_model.find(django_model.modm_query).count()
+
+    while count < total:
+        with transaction.atomic():
+            django_objects = list()
+            offset = count
+            limit = (count + page_size) if (count + page_size) < total else total
+
+            page_of_modm_objects = modm_model.find(django_model.modm_query).sort('-_id')[offset:limit]
+
+            for modm_obj in page_of_modm_objects:
+                django_objects.append(Guid(**{django_model.primary_identifier_name: modm_obj._id}))
+                count += 1
+                if count % page_size == 0 or count == total:
+                    page_finish_time = timezone.now()
+                    print('Saving Guids for {} {} through {}...'.format(django_model._meta.model.__name__,
+                                                                        count - page_size,
+                                                                        count))
+                    saved = Guid.objects.bulk_create(django_objects)
+                    print('Done with {} {} in {} seconds...'.format(len(saved),
+                                                                    django_model._meta.model.__name__, (
+                                                                        timezone.now() - page_finish_time).total_seconds()))
+                    django_objects = []
+                    print('Took out {} trashes'.format(gc.collect()))
+    total = None
+    count = None
+    print('Took out {} trashes'.format(gc.collect()))
 
 
 def save_bare_models(modm_queryset, django_model, page_size=20000):
@@ -61,6 +97,10 @@ def save_bare_models(modm_queryset, django_model, page_size=20000):
                     saved_django_objects = []
                     page_of_modm_objects = []
                     print('Took out {} trashes'.format(gc.collect()))
+    total = None
+    count = None
+    hashes = None
+    print('Took out {} trashes'.format(gc.collect()))
 
 
 def save_bare_system_tags(page_size=10000):
@@ -101,6 +141,7 @@ def register_nonexistent_models_with_modm():
     These models are registered so that anything at all will work.
     :return:
     """
+
     class DropboxFile(StoredFileNode):
         pass
 
@@ -194,6 +235,7 @@ def merge_duplicate_users():
         sys._getframe().f_code.co_name,
         (timezone.now() - start).total_seconds()))
 
+
 class Command(BaseCommand):
     help = 'Migrates data from tokumx to postgres'
 
@@ -222,18 +264,11 @@ class Command(BaseCommand):
             modm_model = getattr(modm_module, model_name)
             modm_queryset = modm_model.find(django_model.modm_query)
 
-            # if a model inherits from objectidmixin grab all it's _ids and bulk create guids for it
-            if issubclass(django_model, ObjectIDMixin) and not django_model is NodeLog:
-                print('Bulk creating guids for {}'.format(django_model._meta.model.__name__))
-                guid_instances = [Guid(**{'object_id':obj._id}) for obj in modm_queryset]
-                print('Saving {} guids...'.format(len(guid_instances)))
-                Guid.objects.bulk_create(guid_instances)
-                guid_instances = []
-                gc.collect()
-
-            page_size = django_model.migration_page_size
             with ipdb.launch_ipdb_on_exception():
-                save_bare_models(modm_queryset, django_model, page_size=page_size)
+                if hasattr(django_model, 'primary_identifier_name') and not issubclass(django_model, GuidMixin):
+                    make_guids(django_model, page_size=django_model.migration_page_size)
+                save_bare_models(modm_queryset, django_model, page_size=django_model.migration_page_size)
+            print('Took out {} trashes'.format(gc.collect()))
 
         # Handle system tags, they're on nodes, they need a special migration
         save_bare_system_tags()

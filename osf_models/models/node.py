@@ -1223,6 +1223,13 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
             self.root = self._root
         return super(AbstractNode, self).save(*args, **kwargs)
 
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        django_obj = super(AbstractNode, cls).migrate_from_modm(modm_obj)
+        # force order, fix in subsequent pass
+        django_obj._order = 0
+        return django_obj
+
 class Node(AbstractNode):
     """
     Concrete Node class: Instance of AbstractNode(TypedModel). All things that inherit
@@ -1262,7 +1269,7 @@ class Node(AbstractNode):
             if isinstance(modm_value, datetime):
                 modm_value = pytz.utc.localize(modm_value)
             setattr(django_obj, field, modm_value)
-
+        django_obj._order = 0
         return django_obj
 
     # /TODO DELETE ME POST MIGRATION
