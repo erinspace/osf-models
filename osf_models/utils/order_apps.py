@@ -21,7 +21,6 @@ def sort_dependencies(app_list):
             # Add any explicitly defined dependencies
             if hasattr(model, 'natural_key'):
                 deps = getattr(model.natural_key, 'dependencies', [])
-                print('{} has {} dependencies'.format(model, deps))
                 if deps:
                     deps = [apps.get_model(app_label, dep) for dep in deps]
             else:
@@ -34,7 +33,6 @@ def sort_dependencies(app_list):
                     rel_model = field.rel.to
                     if hasattr(rel_model, 'natural_key') and rel_model != model:
                         deps.append(rel_model)
-                        print('{} has {} fk dependencies'.format(model, rel_model))
             # Also add a dependency for any simple M2M relation with a model
             # that defines a natural key.  M2M relations with explicit through
             # models don't count as dependencies.
@@ -43,7 +41,6 @@ def sort_dependencies(app_list):
                     rel_model = field.rel.to
                     if hasattr(rel_model, 'natural_key') and rel_model != model:
                         deps.append(rel_model)
-                        print('{} has {} m2m dependencies'.format(model, rel_model))
 
             model_dependencies.append((model, deps))
 
