@@ -6,7 +6,6 @@ import modularodm.exceptions
 import pytz
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
-from django.db.models import Q
 from osf_models.exceptions import ValidationError
 from osf_models.modm_compat import to_django_query, Q
 from osf_models.utils.base import generate_object_id
@@ -187,7 +186,6 @@ class Guid(BaseModel):
 
     def initialize_object_id(self, instance):
         self.object_id = generate_object_id()
-
 
     @property
     def _id(self):

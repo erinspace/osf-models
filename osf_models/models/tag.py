@@ -1,6 +1,3 @@
-from datetime import datetime
-
-import pytz
 from django.db import models
 
 from .base import BaseModel

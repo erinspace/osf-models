@@ -54,6 +54,7 @@ from .base import BaseModel, GuidMixin, Guid
 
 logger = logging.getLogger(__name__)
 
+
 class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
                    NodeLinkMixin,
                    Taggable, Loggable, GuidMixin, BaseModel):
@@ -61,6 +62,7 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
     All things that inherit from AbstractNode will appear in
     the same table and will be differentiated by the `type` column.
     """
+
     class Meta:
         order_with_respect_to = 'parent_node'
 
@@ -99,8 +101,8 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
     # TODO: Can this be a reference instead of data?
     child_node_subscriptions = DateTimeAwareJSONField(default=dict, blank=True)
     _contributors = models.ManyToManyField(OSFUser,
-                                          through=Contributor,
-                                          related_name='nodes')
+                                           through=Contributor,
+                                           related_name='nodes')
 
     @property
     def contributors(self):
@@ -292,6 +294,7 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
 
     def update_search(self):
         from website import search
+
         try:
             search.search.update_node(self, bulk=False, async=True)
         except search.exceptions.SearchUnavailableError as e:
@@ -413,7 +416,7 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
     def set_permissions(self, user, permissions, validate=True, save=False):
         # Ensure that user's permissions cannot be lowered if they are the only admin
         if validate and (reduce_permissions(self.get_permissions(user)) == ADMIN and
-                         reduce_permissions(permissions) != ADMIN):
+                                 reduce_permissions(permissions) != ADMIN):
             admin_contribs = Contributor.objects.filter(node=self, admin=True)
             if admin_contribs.count() <= 1:
                 raise NodeStateError('Must have at least one registered admin contributor')
@@ -639,7 +642,7 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
         contributor = OSFUser.create_unregistered(fullname=fullname, email=email)
 
         contributor.add_unclaimed_record(node=self, referrer=auth.user,
-            given_name=fullname, email=email)
+                                         given_name=fullname, email=email)
         try:
             contributor.save()
         except ValidationError:  # User with same email already exists
@@ -649,7 +652,7 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
             if contributor.is_registered or self.is_contributor(contributor):
                 raise
             contributor.add_unclaimed_record(node=self, referrer=auth.user,
-                given_name=fullname, email=email)
+                                             given_name=fullname, email=email)
             contributor.save()
 
         self.add_contributor(
@@ -1230,6 +1233,7 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
         django_obj._order = 0
         return django_obj
 
+
 class Node(AbstractNode):
     """
     Concrete Node class: Instance of AbstractNode(TypedModel). All things that inherit
@@ -1250,7 +1254,8 @@ class Node(AbstractNode):
         """
         Given a modm object, make a django object with the same local fields.
 
-        This is a base method that may work for simple objects. It should be customized in the child class if it
+        This is a base method that may work for simple objects.
+        It should be customized in the child class if it
         doesn't work.
         :param modm_obj:
         :return:
@@ -1264,7 +1269,8 @@ class Node(AbstractNode):
         django_obj.guid = guid
 
         bad_names = ['institution_logo_name']
-        local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation and x.name not in bad_names])
+        local_django_fields = set(
+            [x.name for x in django_obj._meta.get_fields() if not x.is_relation and x.name not in bad_names])
 
         intersecting_fields = set(modm_obj.to_storage().keys()).intersection(
             set(local_django_fields))
@@ -1286,6 +1292,7 @@ class Node(AbstractNode):
         """Compat with v1."""
         return False
 
+
 @receiver(post_save, sender=Node)
 def add_creator_as_contributor(sender, instance, created, **kwargs):
     if created:
@@ -1297,6 +1304,7 @@ def add_creator_as_contributor(sender, instance, created, **kwargs):
             write=True,
             admin=True
         )
+
 
 @receiver(post_save, sender=Node)
 def add_project_created_log(sender, instance, created, **kwargs):
@@ -1318,10 +1326,12 @@ def add_project_created_log(sender, instance, created, **kwargs):
             save=True,
         )
 
+
 @receiver(post_save, sender=Node)
 def send_osf_signal(sender, instance, created, **kwargs):
     if created:
         project_signals.project_created.send(instance)
+
 
 # TODO: Add addons
 

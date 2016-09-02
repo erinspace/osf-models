@@ -94,12 +94,10 @@ class Sanction(ObjectIDMixin, BaseModel):
         return self.state == Sanction.REJECTED
 
     def approve(self, user):
-        raise NotImplementedError(
-            "Sanction subclasses must implement an approve method.")
+        raise NotImplementedError('Sanction subclasses must implement an approve method.')
 
     def reject(self, user):
-        raise NotImplementedError(
-            "Sanction subclasses must implement an approve method.")
+        raise NotImplementedError('Sanction subclasses must implement an approve method.')
 
     def _on_reject(self, user):
         """Callback for rejection of a Sanction
@@ -128,10 +126,10 @@ class TokenApprovableSanction(Sanction):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.sanctions.TokenApprovableSanction'
     modm_query = None
+
     # /TODO DELETE ME POST MIGRATION
     def _validate_authorizer(self, user):
         """Subclasses may choose to provide extra restrictions on who can be an authorizer
-
         :return Boolean: True if user is allowed to be an authorizer else False
         """
         return True
@@ -418,8 +416,8 @@ class Embargo(PreregCallbackMixin, EmailApprovableSanction):
     def pending_registration(self):
         return not self.for_existing_registration and self.is_pending_approval
 
-    # def __repr__(self):
-    #     pass
+        # def __repr__(self):
+        #     pass
         # from osf_models.models import Node
         #
         # parent_registration = None
@@ -858,13 +856,13 @@ class DraftRegistrationApproval(Sanction):
 
     def approve(self, user):
         if osf_settings.PREREG_ADMIN_TAG not in user.system_tags:
-            raise PermissionsError("This user does not have permission to approve this draft.")
+            raise PermissionsError('This user does not have permission to approve this draft.')
         self.state = Sanction.APPROVED
         self._on_complete(user)
 
     def reject(self, user):
         if osf_settings.PREREG_ADMIN_TAG not in user.system_tags:
-            raise PermissionsError("This user does not have permission to approve this draft.")
+            raise PermissionsError('This user does not have permission to approve this draft.')
         self.state = Sanction.REJECTED
         self._on_reject(user)
 

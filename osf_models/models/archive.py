@@ -23,7 +23,6 @@ class ArchiveTarget(ObjectIDMixin, BaseModel):
     modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
-
     # addon_short_name of target addon
     name = models.CharField(max_length=2048)
 
