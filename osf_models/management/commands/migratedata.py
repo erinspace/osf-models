@@ -10,6 +10,7 @@ from modularodm import Q as MQ
 from osf_models.models import ApiOAuth2Scope
 from osf_models.models import Guid
 from osf_models.models import NodeLog
+from osf_models.models import NotificationSubscription
 from osf_models.models import Tag
 from osf_models.models.base import GuidMixin
 from osf_models.models.contributor import AbstractBaseContributor
@@ -282,7 +283,9 @@ class Command(BaseCommand):
             modm_queryset = modm_model.find(django_model.modm_query)
 
             with ipdb.launch_ipdb_on_exception():
-                if hasattr(django_model, 'primary_identifier_name') and not issubclass(django_model, GuidMixin):
+                if hasattr(django_model, 'primary_identifier_name') and \
+                        not issubclass(django_model, GuidMixin) and \
+                        django_model is not NotificationSubscription:
                     if not options['nodelogs']:
                         make_guids(django_model, page_size=django_model.migration_page_size)
                 if not options['nodelogsguids']:
