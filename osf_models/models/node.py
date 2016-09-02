@@ -50,7 +50,7 @@ from website.util.permissions import (
     WRITE,
     ADMIN,
 )
-from .base import BaseModel, GuidMixin
+from .base import BaseModel, GuidMixin, Guid
 
 logger = logging.getLogger(__name__)
 
@@ -1255,7 +1255,14 @@ class Node(AbstractNode):
         :param modm_obj:
         :return:
         """
+        kwargs = {cls.primary_identifier_name: modm_obj._id}
+        guid, created = Guid.objects.get_or_create(**kwargs)
+        if created:
+            logger.debug('Created a new Guid for {} ({})'.format(modm_obj.__class__.__name__, modm_obj._id))
+
         django_obj = cls()
+        django_obj.guid = guid
+
         bad_names = ['institution_logo_name']
         local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation and x.name not in bad_names])
 
