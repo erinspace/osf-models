@@ -9,6 +9,7 @@ from django.utils import timezone
 from modularodm import Q as MQ
 from osf_models.models import ApiOAuth2Scope
 from osf_models.models import Guid
+from osf_models.models import NodeLog
 from osf_models.models import Tag
 from osf_models.models.base import GuidMixin
 from osf_models.models.contributor import AbstractBaseContributor
@@ -17,7 +18,7 @@ from osf_models.utils.order_apps import get_ordered_models
 from framework.auth.core import User as MODMUser
 from website.files.models import StoredFileNode
 from website.models import Node as MODMNode
-
+from framework.transactions.context import transaction as modm_transaction
 
 def make_guids(django_model, page_size=20000):
     print('Starting {} on {}...'.format(sys._getframe().f_code.co_name, django_model._meta.model.__name__))
@@ -49,6 +50,8 @@ def make_guids(django_model, page_size=20000):
                     print('Done with {} {} in {} seconds...'.format(len(saved),
                                                                     django_model._meta.model.__name__, (
                                                                         timezone.now() - page_finish_time).total_seconds()))
+                    modm_obj._cache.clear()
+                    modm_obj._object_cache.clear()
                     django_objects = []
                     print('Took out {} trashes'.format(gc.collect()))
     total = None
@@ -94,6 +97,8 @@ def save_bare_models(modm_queryset, django_model, page_size=20000):
                     print('Done with {} {} in {} seconds...'.format(len(saved_django_objects),
                                                                     django_model._meta.model.__name__, (
                                                                         timezone.now() - page_finish_time).total_seconds()))
+                    modm_obj._cache.clear()
+                    modm_obj._object_cache.clear()
                     saved_django_objects = []
                     page_of_modm_objects = []
                     print('Took out {} trashes'.format(gc.collect()))
@@ -179,7 +184,7 @@ def register_nonexistent_models_with_modm():
     OSFGuidFile.register_collection()
     DropboxFile.register_collection()
 
-
+@modm_transaction()
 def merge_duplicate_users():
     print('Starting {}...'.format(sys._getframe().f_code.co_name))
     start = timezone.now()
@@ -239,6 +244,11 @@ def merge_duplicate_users():
 class Command(BaseCommand):
     help = 'Migrates data from tokumx to postgres'
 
+    def add_arguments(self, parser):
+        parser.add_argument('--nodelogs', action='store_true', help='Run nodelog migrations')
+        parser.add_argument('--nodelogsguids', action='store_true', help='Run nodelog guid migrations')
+
+
     def handle(self, *args, **options):
         # TODO Handle contributors, they're not a direct 1-to-1 they'll need some love
 
@@ -249,11 +259,18 @@ class Command(BaseCommand):
         # guids first, pls
         models.insert(0, models.pop(models.index(Guid)))
 
-        merge_duplicate_users()
-        # merged users get blank usernames, running it twice fixes it.
-        merge_duplicate_users()
+        if not options['nodelogs'] and not options['nodelogsguids']:
+            merge_duplicate_users()
+            # merged users get blank usernames, running it twice fixes it.
+            merge_duplicate_users()
 
         for django_model in models:
+
+            if not options['nodelogs'] and not options['nodelogsguids'] and django_model is NodeLog:
+                continue
+            elif (options['nodelogs'] or options['nodelogsguids']) and django_model is not NodeLog:
+                continue
+
             if issubclass(django_model, AbstractBaseContributor) \
                     or django_model is ApiOAuth2Scope \
                     or not hasattr(django_model, 'modm_model_path'):
@@ -266,9 +283,14 @@ class Command(BaseCommand):
 
             with ipdb.launch_ipdb_on_exception():
                 if hasattr(django_model, 'primary_identifier_name') and not issubclass(django_model, GuidMixin):
-                    make_guids(django_model, page_size=django_model.migration_page_size)
-                save_bare_models(modm_queryset, django_model, page_size=django_model.migration_page_size)
+                    if not options['nodelogs']:
+                        make_guids(django_model, page_size=django_model.migration_page_size)
+                if not options['nodelogsguids']:
+                    save_bare_models(modm_queryset, django_model, page_size=django_model.migration_page_size)
+            modm_model._cache.clear()
+            modm_model._object_cache.clear()
             print('Took out {} trashes'.format(gc.collect()))
 
         # Handle system tags, they're on nodes, they need a special migration
-        save_bare_system_tags()
+        if not options['nodelogs'] and not options['nodelogsguids']:
+            save_bare_system_tags()
