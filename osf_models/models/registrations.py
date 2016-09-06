@@ -360,7 +360,7 @@ class DraftRegistrationLog(ObjectIDMixin, BaseModel):
     # /TODO DELETE ME POST MIGRATION
     date = models.DateTimeField()  # auto_add=True)
     action = models.CharField(max_length=255)
-    draft = models.ForeignKey('DraftRegistration', related_name='logs', null=True)
+    draft = models.ForeignKey('DraftRegistration', related_name='logs', null=True, blank=True)
     user = models.ForeignKey('OSFUser', null=True)
 
     SUBMITTED = 'submitted'
