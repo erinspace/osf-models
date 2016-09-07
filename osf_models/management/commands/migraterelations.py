@@ -1,9 +1,8 @@
-import importlib
-
 import gc
-import ipdb
+import importlib
 import sys
 
+import ipdb
 from django.apps import apps
 from django.contrib.contenttypes.fields import GenericForeignKey
 from django.core.management import BaseCommand
@@ -13,13 +12,11 @@ from osf_models import models
 from osf_models.models import ApiOAuth2Scope
 from osf_models.models import BlackListGuid
 from osf_models.models import CitationStyle
-from osf_models.models import Embargo
 from osf_models.models import Guid
 from osf_models.models import NotificationSubscription
 from osf_models.models import RecentlyAddedContributor
 from osf_models.models import Tag
 from osf_models.models.contributor import InstitutionalContributor, Contributor, AbstractBaseContributor
-from osf_models.models.identifiers import Identifier
 from osf_models.utils.order_apps import get_ordered_models
 
 
@@ -109,6 +106,9 @@ class Command(BaseCommand):
 
     def save_fk_relationships(self, modm_queryset, django_model, page_size):
         print('Starting {} on {}...'.format(sys._getframe().f_code.co_name, django_model._meta.model.__name__))
+
+        # TODO: Collections is getting user_id added to the bad fields. It shouldn't be.
+        # TODO: Comment.root is getting a recursive loop
 
         fk_relations = [field for field in django_model._meta.get_fields() if
                         field.is_relation and not field.auto_created and field.many_to_one]

@@ -17,9 +17,10 @@ from osf_models.models.contributor import AbstractBaseContributor
 from osf_models.utils.order_apps import get_ordered_models
 
 from framework.auth.core import User as MODMUser
+from framework.transactions.context import transaction as modm_transaction
 from website.files.models import StoredFileNode
 from website.models import Node as MODMNode
-from framework.transactions.context import transaction as modm_transaction
+
 
 def make_guids(django_model, page_size=20000):
     print('Starting {} on {}...'.format(sys._getframe().f_code.co_name, django_model._meta.model.__name__))
@@ -64,7 +65,7 @@ def save_bare_models(modm_queryset, django_model, page_size=20000):
     print('Starting {} on {}...'.format(sys._getframe().f_code.co_name, django_model._meta.model.__name__))
     count = 0
     total = modm_queryset.count()
-    hashes = list()
+    hashes = set()
 
     while count < total:
         with transaction.atomic():
@@ -82,7 +83,7 @@ def save_bare_models(modm_queryset, django_model, page_size=20000):
                     if django_instance._natural_key() not in hashes:
                         # and that natural key doesn't exist in hashes
                         # add it to hashes and append the object
-                        hashes.append(django_instance._natural_key())
+                        hashes.add(django_instance._natural_key())
                         django_objects.append(django_instance)
                 else:
                     # if _natural_key is None add it, it's probably pointing at .pk
