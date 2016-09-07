@@ -404,7 +404,8 @@ class DraftRegistration(ObjectIDMixin, BaseModel):
     # }
     registration_metadata = DateTimeAwareJSONField(default=dict, blank=True)
     registration_schema = models.ForeignKey('MetaSchema', null=True)
-    registered_node = models.ForeignKey('Registration', null=True, blank=True, related_name='draft_registration')
+    registered_node = models.ForeignKey('Registration', null=True, blank=True,
+                                        related_name='draft_registration')
 
     approval = models.ForeignKey('DraftRegistrationApproval', null=True, blank=True)
 

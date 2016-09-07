@@ -83,7 +83,7 @@ class NodeWikiPage(GuidMixin, BaseModel):
     modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
-    page_name = models.CharField(max_length=200, validators=[validate_page_name,])
+    page_name = models.CharField(max_length=200, validators=[validate_page_name, ])
     version = models.IntegerField()
     date = models.DateTimeField()  # auto_now_add=True)
     content = models.TextField(default='')
