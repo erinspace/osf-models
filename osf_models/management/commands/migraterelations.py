@@ -138,7 +138,7 @@ class Command(BaseCommand):
                                 gfk_model = apps.get_model('osf_models', value.__class__.__name__)
                             gfk_instance = gfk_model.objects.get(pk=self.modm_to_django[value._id])
                             setattr(django_obj, field_name, gfk_instance)
-                            print('Set GFK of {} to {}'.format(value, gfk_instance))
+                            print('Set GFK of {} to {}'.format(value.__repr__(), gfk_instance))
                         else:
                             field_name = field.attname
                             if field_name in bad_fields:
