@@ -190,6 +190,12 @@ class Guid(BaseModel):
     def initialize_object_id(self, instance):
         self.object_id = generate_object_id()
 
+    def mint(self):
+        if not self.guid:
+            self.guid = generate_guid()
+            self.save()
+        return self.guid
+
     @property
     def _id(self):
         return self.guid or self.object_id
