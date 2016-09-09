@@ -250,7 +250,6 @@ class Command(BaseCommand):
         parser.add_argument('--nodelogs', action='store_true', help='Run nodelog migrations')
         parser.add_argument('--nodelogsguids', action='store_true', help='Run nodelog guid migrations')
 
-
     def handle(self, *args, **options):
         # TODO Handle contributors, they're not a direct 1-to-1 they'll need some love
 

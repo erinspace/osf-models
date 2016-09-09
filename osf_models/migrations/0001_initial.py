@@ -227,7 +227,7 @@ class Migration(migrations.Migration):
             options={
                 'abstract': False,
             },
-            bases=(osf_models.models.comment.SpamMixin, osf_models.models.comment.CommentableMixin, models.Model),
+            bases=(osf_models.models.comment.SpamMixin, models.Model),
         ),
         migrations.CreateModel(
             name='Conference',
@@ -350,6 +350,20 @@ class Migration(migrations.Migration):
                 ('provider_id', models.CharField(max_length=255)),
                 ('display_name', models.CharField(blank=True, max_length=255, null=True)),
                 ('profile_url', models.URLField(blank=True, null=True)),
+            ],
+        ),
+        migrations.CreateModel(
+            name='FileVersion',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('identifier', models.CharField(max_length=100)),
+                ('date_created', models.DateTimeField()),
+                ('size', models.PositiveIntegerField()),
+                ('content_type', models.CharField(max_length=50)),
+                ('date_modified', models.DateTimeField()),
+                ('location', osf_models.utils.datetime_aware_jsonfield.DateTimeAwareJSONField(db_index=True, default=dict)),
+                ('metadata', osf_models.utils.datetime_aware_jsonfield.DateTimeAwareJSONField(db_index=True, default=dict)),
+                ('creator', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
         ),
         migrations.CreateModel(
@@ -621,6 +635,7 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
+<<<<<<< 5281650671a1ac804483b4db6198de894a91cab1
             name='Subject',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -631,6 +646,23 @@ class Migration(migrations.Migration):
             options={
                 'abstract': False,
             },
+=======
+            name='StoredFileNode',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('last_touched', models.DateTimeField()),
+                ('history', osf_models.utils.datetime_aware_jsonfield.DateTimeAwareJSONField()),
+                ('is_file', models.BooleanField(default=True)),
+                ('provider', models.CharField(max_length=25)),
+                ('name', models.CharField(max_length=1000)),
+                ('path', models.CharField(max_length=200)),
+                ('materialized_path', models.CharField(max_length=300)),
+                ('checkout', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                ('copied_from', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='copy_of', to='osf_models.StoredFileNode')),
+                ('guid', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='referent_storedfilenode', to='osf_models.Guid')),
+                ('parent', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='child', to='osf_models.StoredFileNode')),
+            ],
+>>>>>>> Add file migrations and fix other migrationy things.
         ),
         migrations.CreateModel(
             name='Tag',
@@ -639,6 +671,32 @@ class Migration(migrations.Migration):
                 ('name', models.CharField(db_index=True, max_length=1024)),
                 ('system', models.BooleanField(default=False)),
             ],
+        ),
+        migrations.CreateModel(
+            name='TrashedFileNode',
+            fields=[
+                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
+                ('last_touched', models.DateTimeField()),
+                ('history', osf_models.utils.datetime_aware_jsonfield.DateTimeAwareJSONField(default=[])),
+                ('object_id', models.PositiveIntegerField()),
+                ('is_file', models.BooleanField(default=True)),
+                ('provider', models.CharField(max_length=25)),
+                ('name', models.CharField(max_length=1000)),
+                ('path', models.CharField(max_length=200)),
+                ('materialized_path', models.CharField(max_length=300)),
+                ('deleted_on', models.DateTimeField()),
+                ('suspended', models.BooleanField(default=False)),
+                ('checkout', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='trashed_files_checked_out', to=settings.AUTH_USER_MODEL)),
+                ('content_type', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='contenttypes.ContentType')),
+                ('copied_from', models.ForeignKey(default=None, on_delete=django.db.models.deletion.CASCADE, to='osf_models.StoredFileNode')),
+                ('deleted_by', models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='files_deleted_by', to=settings.AUTH_USER_MODEL)),
+                ('guid', models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='referent_trashedfilenode', to='osf_models.Guid')),
+                ('tags', models.ManyToManyField(to='osf_models.Tag')),
+                ('versions', models.ManyToManyField(to='osf_models.FileVersion')),
+            ],
+            options={
+                'abstract': False,
+            },
         ),
         migrations.CreateModel(
             name='WatchConfig',
@@ -656,6 +714,16 @@ class Migration(migrations.Migration):
             unique_together=set([('name', 'system')]),
         ),
         migrations.AddField(
+            model_name='storedfilenode',
+            name='tags',
+            field=models.ManyToManyField(to='osf_models.Tag'),
+        ),
+        migrations.AddField(
+            model_name='storedfilenode',
+            name='versions',
+            field=models.ManyToManyField(to='osf_models.FileVersion'),
+        ),
+        migrations.AddField(
             model_name='institution',
             name='contributors',
             field=models.ManyToManyField(related_name='institutions', through='osf_models.InstitutionalContributor', to=settings.AUTH_USER_MODEL),
@@ -664,6 +732,11 @@ class Migration(migrations.Migration):
             model_name='institution',
             name='guid',
             field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='referent_institution', to='osf_models.Guid'),
+        ),
+        migrations.AddField(
+            model_name='fileversion',
+            name='guid',
+            field=models.OneToOneField(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='referent_fileversion', to='osf_models.Guid'),
         ),
         migrations.AddField(
             model_name='externalaccount',
@@ -1000,6 +1073,16 @@ class Migration(migrations.Migration):
             name='watchconfig',
             unique_together=set([('user', 'node')]),
         ),
+        migrations.AddField(
+            model_name='trashedfilenode',
+            name='node',
+            field=models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='osf_models.Node'),
+        ),
+        migrations.AddField(
+            model_name='storedfilenode',
+            name='node',
+            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, to='osf_models.Node'),
+        ),
         migrations.AlterUniqueTogether(
             name='recentlyaddedcontributor',
             unique_together=set([('user', 'contributor')]),
@@ -1034,6 +1117,10 @@ class Migration(migrations.Migration):
         migrations.AlterUniqueTogether(
             name='identifier',
             unique_together=set([('object_id', 'content_type', 'category')]),
+        ),
+        migrations.AlterIndexTogether(
+            name='fileversion',
+            index_together=set([('guid', 'metadata')]),
         ),
         migrations.AlterUniqueTogether(
             name='externalaccount',
@@ -1080,5 +1167,13 @@ class Migration(migrations.Migration):
         migrations.AlterOrderWithRespectTo(
             name='abstractnode',
             order_with_respect_to='parent_node',
+        ),
+        migrations.AlterUniqueTogether(
+            name='storedfilenode',
+            unique_together=set([('node', 'name', 'parent', 'is_file', 'provider', 'path')]),
+        ),
+        migrations.AlterIndexTogether(
+            name='storedfilenode',
+            index_together=set([('node', 'is_file', 'provider'), ('path', 'node', 'is_file', 'provider')]),
         ),
     ]

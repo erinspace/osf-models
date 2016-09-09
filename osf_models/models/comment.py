@@ -17,7 +17,7 @@ class SpamMixin(object):
     pass
 
 
-class CommentableMixin(object):
+class CommentableMixin(models.Model):
     """Abstract class that defines the interface for models that have comments attached to them."""
 
     @property
@@ -31,10 +31,6 @@ class CommentableMixin(object):
         E.g. For a NodeWikiPage, the page name is 'wiki'."""
         raise NotImplementedError
 
-    @property
-    def is_deleted(self):
-        raise NotImplementedError
-
     def belongs_to_node(self, node_id):
         """Check whether an object (e.g. file, wiki, comment) is attached to the specified node."""
         raise NotImplementedError
@@ -44,8 +40,11 @@ class CommentableMixin(object):
         created, edited, deleted or restored."""
         return {}
 
+    class Meta:
+        abstract = True
 
-class Comment(GuidMixin, SpamMixin, CommentableMixin, BaseModel):
+
+class Comment(GuidMixin, CommentableMixin, SpamMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.Comment'
     modm_query = None

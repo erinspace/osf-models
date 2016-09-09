@@ -227,4 +227,3 @@ class Command(BaseCommand):
                     if model_count % page_size == 0 or model_count == model_total:
                         print('Through {} {}s and {} m2m'.format(model_count, django_model._meta.model.__name__, m2m_count))
         print('Done with {} in {} seconds...'.format(sys._getframe().f_code.co_name, (timezone.now())))
-
