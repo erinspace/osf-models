@@ -40,30 +40,36 @@ class TrashedFileNode(CommentableMixin, ObjectIDMixin, BaseModel):
     modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
-    last_touched = models.DateTimeField()
-    history = DateTimeAwareJSONField(default=list())
+    last_touched = models.DateTimeField(null=True, blank=True)
+    history = DateTimeAwareJSONField(default=list, blank=True)
     versions = models.ManyToManyField('FileVersion')
 
-    node = models.ForeignKey('Node', null=True, blank=True)
-    object_id = models.PositiveIntegerField()
-    content_type = models.ForeignKey('contenttypes.ContentType')
+    node = models.ForeignKey('AbstractNode', null=True, blank=True)
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_type = models.ForeignKey('contenttypes.ContentType', null=True, blank=True)
     parent = GenericForeignKey()
 
     is_file = models.BooleanField(default=True)
-    provider = models.CharField(max_length=25, blank=False, null=False)  # max_length in staging was 11
+    provider = models.CharField(max_length=25, blank=True, null=True)  # max_length in staging was 11
 
-    name = models.CharField(max_length=1000, blank=False, null=False)  # max_length in staging was 858
-    path = models.CharField(max_length=200, blank=False, null=False)  # max_length in staging was 140
+    name = models.CharField(max_length=1000, blank=True, null=True)  # max_length in staging was 858
+    path = models.CharField(max_length=200, blank=True, null=True)  # max_length in staging was 140
     # max_length in staging was 265
-    materialized_path = models.CharField(max_length=300, blank=False, null=False)
-    checkout = models.ForeignKey('OSFUser', related_name='trashed_files_checked_out')
-    deleted_by = models.ForeignKey('OSFUser', related_name='files_deleted_by')
+    _materialized_path = models.CharField(max_length=300, blank=True, null=True)
+    checkout = models.ForeignKey('OSFUser', related_name='trashed_files_checked_out', null=True, blank=True)
+    deleted_by = models.ForeignKey('OSFUser', related_name='files_deleted_by', null=True, blank=True)
     deleted_on = models.DateTimeField()  # auto_now_add=True)
     tags = models.ManyToManyField('Tag')
     suspended = models.BooleanField(default=False)
 
-    copied_from = models.ForeignKey('StoredFileNode', default=None)
+    copied_from = models.ForeignKey('StoredFileNode', default=None, null=True, blank=True)
 
+    @property
+    def materialized_path(self):
+        if self.provider == 'osfstorage':
+            pass
+        else:
+            return self._materialized_path
     @property
     def deep_url(self):
         """Allows deleted files to resolve to a view
@@ -140,20 +146,20 @@ class StoredFileNode(CommentableMixin, ObjectIDMixin, BaseModel):
     """
 
     # TODO DELETE ME POST MIGRATION
-    modm_model_path = 'website.files.models.StoredFileNode'
+    modm_model_path = 'website.files.models.base.StoredFileNode'
     modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
     # The last time the touch method was called on this FileNode
-    last_touched = models.DateTimeField()
+    last_touched = models.DateTimeField(null=True, blank=True)
     # A list of dictionaries sorted by the 'modified' key
     # The raw output of the metadata request deduped by etag
     # Add regardless it can be pinned to a version or not
-    history = DateTimeAwareJSONField()
+    history = DateTimeAwareJSONField(default=[], blank=True)
     # A concrete version of a FileNode, must have an identifier
     versions = models.ManyToManyField('FileVersion')
 
-    node = models.ForeignKey('Node', blank=False, null=False)
+    node = models.ForeignKey('AbstractNode', blank=True, null=True)
     parent = models.ForeignKey('StoredFileNode', blank=True, null=True, default=None, related_name='child')
     copied_from = models.ForeignKey('StoredFileNode', blank=True, null=True, default=None,
                                     related_name='copy_of')
@@ -161,9 +167,9 @@ class StoredFileNode(CommentableMixin, ObjectIDMixin, BaseModel):
     is_file = models.BooleanField(default=True)
     provider = models.CharField(max_length=25, blank=False, null=False)
 
-    name = models.CharField(max_length=1000, blank=False, null=False)
-    path = models.CharField(max_length=200, blank=False, null=False)
-    materialized_path = models.CharField(max_length=300, blank=False, null=False)
+    name = models.CharField(max_length=1000, blank=True, null=True)
+    path = models.CharField(max_length=1000, blank=True, null=True)  # 270 on staging
+    _materialized_path = models.CharField(max_length=1000, blank=True, null=True)  # 482 on staging
 
     # The User that has this file "checked out"
     # Should only be used for OsfStorage
@@ -285,7 +291,7 @@ class FileNode(object):
         path = '/' + path.lstrip('/')
         try:
             # Note: Possible race condition here
-            # Currently create then find is not super feasable as create would require a
+            # Currently create then find is not super feasible as create would require a
             # call to save which we choose not to call to avoid filling  the database
             # with notfound/googlebot files/url. Raising 404 errors may roll back the transaction however
             return cls.find_one(Q('node', 'eq', node) & Q('path', 'eq', path))
@@ -339,7 +345,7 @@ class FileNode(object):
         :param qs RawQuery: An odm query or None
         :rtype: RawQuery or None
         """
-        # Build a list of all possible contraints leaving None when appropriate
+        # Build a list of all possible constraints leaving None when appropriate
         # filter(None, ...) removes all falsey values
         qs = filter(None, (qs,
                            Q('is_file', 'eq', cls.is_file) if hasattr(cls, 'is_file') else None,
@@ -348,13 +354,13 @@ class FileNode(object):
         # If out list is empty return None; there's no filters to be applied
         if not qs:
             return None
-        # Use reduce to & together all our queries. equavilent to:
+        # Use reduce to & together all our queries. equivalent to:
         # return q1 & q2 ... & qn
         return functools.reduce(lambda q1, q2: q1 & q2, qs)
 
     @classmethod
     def find(cls, qs=None):
-        """A proxy for StoredFileNode.find but applies class based contraints.
+        """A proxy for StoredFileNode.find but applies class based constraints.
         Wraps The MongoQuerySet in a GenWrapper this overrides the __iter__ of
         MongoQuerySet to return wrapped objects
         :rtype: GenWrapper<MongoQuerySet<cls>>
@@ -363,7 +369,7 @@ class FileNode(object):
 
     @classmethod
     def find_one(cls, qs):
-        """A proxy for StoredFileNode.find_one but applies class based contraints.
+        """A proxy for StoredFileNode.find_one but applies class based constraints.
         :rtype: cls
         """
         return StoredFileNode.find_one(cls._filter(qs)).wrapped()
@@ -371,7 +377,7 @@ class FileNode(object):
     @classmethod
     def files_checked_out(cls, user):
         """
-        :param user: The user with checkedout files
+        :param user: The user with checked out files
         :return: A queryset of all FileNodes checked out by user
         """
         return cls.find(Q('checkout', 'eq', user))
@@ -765,7 +771,12 @@ class FileVersion(ObjectIDMixin, BaseModel):
     about where the file is located, hashes and datetimes
     """
 
-    creator = models.ForeignKey('OSFUser')
+    # TODO DELETE ME POST MIGRATION
+    modm_model_path = 'website.files.models.base.FileVersion'
+    modm_query = None
+    # /TODO DELETE ME POST MIGRATION
+
+    creator = models.ForeignKey('OSFUser', null=True, blank=True)
 
     identifier = models.CharField(max_length=100, blank=False, null=False)  # max length on staging was 51
 
@@ -774,13 +785,13 @@ class FileVersion(ObjectIDMixin, BaseModel):
 
     size = models.PositiveIntegerField()
 
-    content_type = models.CharField(max_length=50)  # was 24 on staging
+    content_type = models.CharField(max_length=50, blank=True, null=True)  # was 24 on staging
     # Date file modified on third-party backend. Not displayed to user, since
     # this date may be earlier than the date of upload if the file already
     # exists on the backend
     date_modified = models.DateTimeField()
 
-    location = DateTimeAwareJSONField(default=dict, db_index=True)
+    location = DateTimeAwareJSONField(default=dict, db_index=True, blank=True, null=True)
     metadata = DateTimeAwareJSONField(default=dict, db_index=True)
 
     @property

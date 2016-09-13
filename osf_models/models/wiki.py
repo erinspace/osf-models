@@ -86,7 +86,7 @@ class NodeWikiPage(GuidMixin, BaseModel):
     page_name = models.CharField(max_length=200, validators=[validate_page_name, ])
     version = models.IntegerField()
     date = models.DateTimeField()  # auto_now_add=True)
-    content = models.TextField(default='')
+    content = models.TextField(default='', blank=True,)
 
     user = models.ForeignKey('OSFUser', null=True, blank=True)
     node = models.ForeignKey('Node', null=True, blank=True)

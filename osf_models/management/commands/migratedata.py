@@ -7,13 +7,12 @@ from django.core.management import BaseCommand
 from django.db import transaction
 from django.utils import timezone
 from modularodm import Q as MQ
-from osf_models.models import ApiOAuth2Scope
 from osf_models.models import Guid
 from osf_models.models import NodeLog
 from osf_models.models import NotificationSubscription
 from osf_models.models import Tag
+from osf_models.models import TrashedFileNode
 from osf_models.models.base import GuidMixin
-from osf_models.models.contributor import AbstractBaseContributor
 from osf_models.utils.order_apps import get_ordered_models
 
 from framework.auth.core import User as MODMUser
@@ -51,7 +50,8 @@ def make_guids(django_model, page_size=20000):
                     saved = Guid.objects.bulk_create(django_objects)
                     print('Done with {} {} in {} seconds...'.format(len(saved),
                                                                     django_model._meta.model.__name__, (
-                                                                        timezone.now() - page_finish_time).total_seconds()))
+                                                                        timezone.now() -
+                                                                        page_finish_time).total_seconds()))
                     modm_obj._cache.clear()
                     modm_obj._object_cache.clear()
                     django_objects = []
@@ -92,13 +92,16 @@ def save_bare_models(modm_queryset, django_model, page_size=20000):
                 count += 1
                 if count % page_size == 0 or count == total:
                     page_finish_time = timezone.now()
-                    print('Saving {} {} through {}...'.format(django_model._meta.model.__name__, count - page_size,
-                                                              count))
+                    print(
+                        'Saving {} {} through {}...'.format(django_model._meta.model.__name__,
+                                                            count - page_size,
+                                                            count))
                     saved_django_objects = django_model.objects.bulk_create(django_objects)
 
                     print('Done with {} {} in {} seconds...'.format(len(saved_django_objects),
                                                                     django_model._meta.model.__name__, (
-                                                                        timezone.now() - page_finish_time).total_seconds()))
+                                                                        timezone.now() -
+                                                                        page_finish_time).total_seconds()))
                     modm_obj._cache.clear()
                     modm_obj._object_cache.clear()
                     saved_django_objects = []
@@ -186,6 +189,7 @@ def register_nonexistent_models_with_modm():
     OSFGuidFile.register_collection()
     DropboxFile.register_collection()
 
+
 @modm_transaction()
 def merge_duplicate_users():
     print('Starting {}...'.format(sys._getframe().f_code.co_name))
@@ -264,6 +268,7 @@ class Command(BaseCommand):
             merge_duplicate_users()
             # merged users get blank usernames, running it twice fixes it.
             merge_duplicate_users()
+        from osf_models.models import FileVersion
 
         for django_model in models:
 
@@ -272,9 +277,11 @@ class Command(BaseCommand):
             elif (options['nodelogs'] or options['nodelogsguids']) and django_model is not NodeLog:
                 continue
 
-            if issubclass(django_model, AbstractBaseContributor) \
-                    or django_model is ApiOAuth2Scope \
-                    or not hasattr(django_model, 'modm_model_path'):
+            if not hasattr(django_model, 'modm_model_path'):
+                print('################################################\n'
+                      '{} doesn\'t have a modm_model_path\n'
+                      '################################################'.format(
+                    django_model._meta.model.__name__))
                 continue
 
             module_path, model_name = django_model.modm_model_path.rsplit('.', 1)
@@ -285,7 +292,7 @@ class Command(BaseCommand):
             with ipdb.launch_ipdb_on_exception():
                 if hasattr(django_model, 'primary_identifier_name') and \
                         not issubclass(django_model, GuidMixin) and \
-                        django_model is not NotificationSubscription:
+                                django_model is not NotificationSubscription:
                     if not options['nodelogs']:
                         make_guids(django_model, page_size=django_model.migration_page_size)
                 if not options['nodelogsguids']:

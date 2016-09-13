@@ -12,10 +12,13 @@ from osf_models import models
 from osf_models.models import ApiOAuth2Scope
 from osf_models.models import BlackListGuid
 from osf_models.models import CitationStyle
+from osf_models.models import FileVersion
 from osf_models.models import Guid
 from osf_models.models import NotificationSubscription
 from osf_models.models import RecentlyAddedContributor
+from osf_models.models import StoredFileNode
 from osf_models.models import Tag
+from osf_models.models import TrashedFileNode
 from osf_models.models.contributor import InstitutionalContributor, Contributor, AbstractBaseContributor
 from osf_models.utils.order_apps import get_ordered_models
 
@@ -91,9 +94,9 @@ class Command(BaseCommand):
 
         for django_model in models:
 
-            if issubclass(django_model, AbstractBaseContributor) \
-                    or django_model is ApiOAuth2Scope \
-                    or not hasattr(django_model, 'modm_model_path'):
+            # if issubclass(django_model, AbstractBaseContributor) \
+            #         or django_model is ApiOAuth2Scope \
+            if django_model not in [StoredFileNode, TrashedFileNode, FileVersion] or not hasattr(django_model, 'modm_model_path'):
                 continue
 
             module_path, model_name = django_model.modm_model_path.rsplit('.', 1)
@@ -132,7 +135,10 @@ class Command(BaseCommand):
                         if isinstance(field, GenericForeignKey):
                             field_name = field.name
                             value = getattr(modm_obj, field_name)
-                            if value.__class__.__name__ == 'Node':
+                            if value is None:
+                                print('Value for {}.{} was None'.format(modm_obj.__repr__(), field_name))
+                                continue
+                            if value.__class__.__name__ in ['Node', 'Registration']:
                                 gfk_model = apps.get_model('osf_models', 'AbstractNode')
                             else:
                                 gfk_model = apps.get_model('osf_models', value.__class__.__name__)

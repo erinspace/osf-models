@@ -13,7 +13,7 @@ class PrivateLink(ObjectIDMixin, BaseModel):
     # /TODO DELETE ME POST MIGRATION
     date_created = models.DateTimeField(default=timezone.now)
     key = models.CharField(max_length=512, null=False, unique=True, blank=False)
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=255, blank=True, null=True)
     is_deleted = models.BooleanField(default=False)
     anonymous = models.BooleanField(default=False)
 
