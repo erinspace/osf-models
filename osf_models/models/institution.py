@@ -36,7 +36,7 @@ class Institution(Loggable, base.GuidMixin, base.BaseModel):
     def migrate_from_modm(cls, modm_obj):
         guid, created = Guid.objects.get_or_create(guid=modm_obj._id)
         inst = Institution()
-        inst._guid = guid
+        inst.guid = guid
         inst.auth_url = modm_obj.institution_auth_url
         inst.banner_name = modm_obj.institution_banner_name
         inst.domains = modm_obj.institution_domains
