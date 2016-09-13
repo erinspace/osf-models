@@ -70,6 +70,7 @@ class TrashedFileNode(CommentableMixin, ObjectIDMixin, BaseModel):
             pass
         else:
             return self._materialized_path
+
     @property
     def deep_url(self):
         """Allows deleted files to resolve to a view
