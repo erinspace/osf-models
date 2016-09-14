@@ -13,7 +13,7 @@ from modularodm import Q as MQ
 class Institution(Loggable, base.GuidMixin, base.BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.Node'
-    modm_query = MQ('is_institution', 'eq', True)
+    modm_query = dict(query=MQ('institution_id', 'ne', None), allow_institution=True)
     # /TODO DELETE ME POST MIGRATION
 
     # TODO Remove null=True for things that shouldn't be nullable
