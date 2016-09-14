@@ -14,6 +14,7 @@ from osf_models.models import BlackListGuid
 from osf_models.models import CitationStyle
 from osf_models.models import FileVersion
 from osf_models.models import Guid
+from osf_models.models import Institution
 from osf_models.models import NotificationSubscription
 from osf_models.models import RecentlyAddedContributor
 from osf_models.models import StoredFileNode
@@ -94,9 +95,9 @@ class Command(BaseCommand):
 
         for django_model in models:
 
-            # if issubclass(django_model, AbstractBaseContributor) \
-            #         or django_model is ApiOAuth2Scope \
-            if django_model not in [StoredFileNode, TrashedFileNode, FileVersion] or not hasattr(django_model, 'modm_model_path'):
+            if issubclass(django_model, AbstractBaseContributor) \
+                    or django_model is ApiOAuth2Scope or \
+                    hasattr(django_model, 'modm_model_path'):
                 continue
 
             module_path, model_name = django_model.modm_model_path.rsplit('.', 1)
@@ -127,16 +128,22 @@ class Command(BaseCommand):
         model_count = 0
         model_total = modm_queryset.count()
         bad_fields = []
+
         while model_count < model_total:
             with transaction.atomic():
                 for modm_obj in modm_queryset.sort('_id')[model_count:model_count + page_size]:
                     django_obj = django_model.objects.get(pk=self.modm_to_django[modm_obj._id])
+
+                    # if an institution has a file, it doesn't
+                    if isinstance(django_obj, StoredFileNode) and modm_obj.node is not None and \
+                            modm_obj.node.institution_id is not None:
+                        continue
+
                     for field in fk_relations:
                         if isinstance(field, GenericForeignKey):
                             field_name = field.name
                             value = getattr(modm_obj, field_name)
                             if value is None:
-                                print('Value for {}.{} was None'.format(modm_obj.__repr__(), field_name))
                                 continue
                             if value.__class__.__name__ in ['Node', 'Registration']:
                                 gfk_model = apps.get_model('osf_models', 'AbstractNode')
@@ -144,7 +151,6 @@ class Command(BaseCommand):
                                 gfk_model = apps.get_model('osf_models', value.__class__.__name__)
                             gfk_instance = gfk_model.objects.get(pk=self.modm_to_django[value._id])
                             setattr(django_obj, field_name, gfk_instance)
-                            print('Set GFK of {} to {}'.format(value.__repr__(), gfk_instance))
                         else:
                             field_name = field.attname
                             if field_name in bad_fields:
