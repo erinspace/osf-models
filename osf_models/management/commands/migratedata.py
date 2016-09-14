@@ -271,7 +271,6 @@ class Command(BaseCommand):
         from osf_models.models import FileVersion
 
         for django_model in models:
-
             if not options['nodelogs'] and not options['nodelogsguids'] and django_model is NodeLog:
                 continue
             elif (options['nodelogs'] or options['nodelogsguids']) and django_model is not NodeLog:
@@ -287,7 +286,10 @@ class Command(BaseCommand):
             module_path, model_name = django_model.modm_model_path.rsplit('.', 1)
             modm_module = importlib.import_module(module_path)
             modm_model = getattr(modm_module, model_name)
-            modm_queryset = modm_model.find(django_model.modm_query)
+            if isinstance(django_model.modm_query, dict):
+                modm_queryset = modm_model.find(**django_model.modm_query)
+            else:
+                modm_queryset = modm_model.find(django_model.modm_query)
 
             with ipdb.launch_ipdb_on_exception():
                 if hasattr(django_model, 'primary_identifier_name') and \
