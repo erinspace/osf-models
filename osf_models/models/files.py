@@ -38,6 +38,7 @@ class TrashedFileNode(CommentableMixin, ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.files.models.TrashedFileNode'
     modm_query = None
+    migration_page_size = 80000
     # /TODO DELETE ME POST MIGRATION
 
     last_touched = models.DateTimeField(null=True, blank=True)
@@ -149,6 +150,7 @@ class StoredFileNode(CommentableMixin, ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.files.models.base.StoredFileNode'
     modm_query = None
+    migration_page_size = 80000
     # /TODO DELETE ME POST MIGRATION
 
     # The last time the touch method was called on this FileNode
@@ -775,6 +777,7 @@ class FileVersion(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.files.models.base.FileVersion'
     modm_query = None
+    migration_page_size = 40000
     # /TODO DELETE ME POST MIGRATION
 
     creator = models.ForeignKey('OSFUser', null=True, blank=True)
