@@ -635,7 +635,6 @@ class Migration(migrations.Migration):
             },
         ),
         migrations.CreateModel(
-<<<<<<< 5281650671a1ac804483b4db6198de894a91cab1
             name='Subject',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -646,7 +645,8 @@ class Migration(migrations.Migration):
             options={
                 'abstract': False,
             },
-=======
+        ),
+        migrations.CreateModel(
             name='StoredFileNode',
             fields=[
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
@@ -663,7 +663,6 @@ class Migration(migrations.Migration):
                 ('node', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to='osf_models.AbstractNode')),
                 ('parent', models.ForeignKey(blank=True, default=None, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='child', to='osf_models.StoredFileNode')),
             ],
->>>>>>> Add file migrations and fix other migrationy things.
         ),
         migrations.CreateModel(
             name='Tag',
