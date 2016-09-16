@@ -11,7 +11,6 @@ from osf_models.models import Guid
 from osf_models.models import NodeLog
 from osf_models.models import NotificationSubscription
 from osf_models.models import Tag
-from osf_models.models import TrashedFileNode
 from osf_models.models.base import GuidMixin
 from osf_models.utils.order_apps import get_ordered_models
 
@@ -261,14 +260,13 @@ class Command(BaseCommand):
         register_nonexistent_models_with_modm()
 
         models = get_ordered_models()
-        # guids first, pls
-        models.insert(0, models.pop(models.index(Guid)))
+        # guids last, pls
+        models.pop(models.index(Guid))
 
         if not options['nodelogs'] and not options['nodelogsguids']:
             merge_duplicate_users()
             # merged users get blank usernames, running it twice fixes it.
             merge_duplicate_users()
-        from osf_models.models import FileVersion
 
         for django_model in models:
             if not options['nodelogs'] and not options['nodelogsguids'] and django_model is NodeLog:

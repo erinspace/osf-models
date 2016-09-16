@@ -11,7 +11,7 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
 from django.utils import timezone
 from osf_models.exceptions import ValidationError
-from osf_models.modm_compat import to_django_query, Q
+from osf_models.modm_compat import to_django_query
 from osf_models.utils.base import generate_object_id
 
 ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz'
@@ -104,6 +104,34 @@ class BaseModel(models.Model):
         if obj.pk:
             return obj.delete()
 
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        """
+        Given a modm object, make a django object with the same local fields.
+
+        This is a base method that may work for simple objects.
+        It should be customized in the child class if it doesn't work.
+
+        :param modm_obj:
+        :return:
+        """
+        django_obj = cls()
+
+        local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation])
+
+        intersecting_fields = set(modm_obj.to_storage().keys()).intersection(
+            set(local_django_fields))
+
+        for field in intersecting_fields:
+            modm_value = getattr(modm_obj, field)
+            if modm_value is None:
+                continue
+            if isinstance(modm_value, datetime):
+                modm_value = pytz.utc.localize(modm_value)
+            setattr(django_obj, field, modm_value)
+
+        return django_obj
+
     @property
     def _primary_name(self):
         return '_id'
@@ -128,40 +156,6 @@ class BaseModel(models.Model):
             except DjangoValidationError as err:
                 raise ValidationError(*err.args)
         return super(BaseModel, self).save(*args, **kwargs)
-
-    @classmethod
-    def migrate_from_modm(cls, modm_obj):
-        """
-        Given a modm object, make a django object with the same local fields.
-
-        This is a base method that may work for simple objects.
-        It should be customized in the child class if it doesn't work.
-
-        :param modm_obj:
-        :return:
-        """
-        kwargs = {cls.primary_identifier_name: modm_obj._id}
-        guid, created = Guid.objects.get_or_create(**kwargs)
-        if created:
-            logger.debug('Created a new Guid for {} ({})'.format(modm_obj.__class__.__name__, modm_obj._id))
-
-        django_obj = cls()
-        django_obj.guid = guid
-
-        local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation])
-
-        intersecting_fields = set(modm_obj.to_storage().keys()).intersection(
-            set(local_django_fields))
-
-        for field in intersecting_fields:
-            modm_value = getattr(modm_obj, field)
-            if modm_value is None:
-                continue
-            if isinstance(modm_value, datetime):
-                modm_value = pytz.utc.localize(modm_value)
-            setattr(django_obj, field, modm_value)
-
-        return django_obj
 
 
 # TODO: Rename to Identifier?
@@ -273,6 +267,34 @@ class BaseIDMixin(models.Model):
         except cls.DoesNotExist:
             return None
 
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        """
+        Given a modm object, make a django object with the same local fields.
+
+        This is a base method that may work for simple objects.
+        It should be customized in the child class if it doesn't work.
+
+        :param modm_obj:
+        :return:
+        """
+        django_obj = cls()
+
+        local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation])
+
+        intersecting_fields = set(modm_obj.to_storage().keys()).intersection(
+            set(local_django_fields))
+
+        for field in intersecting_fields:
+            modm_value = getattr(modm_obj, field)
+            if modm_value is None:
+                continue
+            if isinstance(modm_value, datetime):
+                modm_value = pytz.utc.localize(modm_value)
+            setattr(django_obj, field, modm_value)
+
+        return django_obj
+
     def clone(self):
         ret = super(BaseIDMixin, self).clone()
         ret.guid = None
@@ -292,7 +314,36 @@ class BaseIDMixin(models.Model):
 
 
 class ObjectIDMixin(BaseIDMixin):
-    _id = models.CharField(max_length=24)
+    _id = models.CharField(max_length=24, default=generate_object_id)
+
+    @classmethod
+    def migrate_from_modm(cls, modm_obj):
+        """
+        Given a modm object, make a django object with the same local fields.
+
+        This is a base method that may work for simple objects.
+        It should be customized in the child class if it doesn't work.
+
+        :param modm_obj:
+        :return:
+        """
+
+        django_obj = cls()
+
+        local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation])
+
+        intersecting_fields = set(modm_obj.to_storage().keys()).intersection(
+            set(local_django_fields))
+
+        for field in intersecting_fields:
+            modm_value = getattr(modm_obj, field)
+            if modm_value is None:
+                continue
+            if isinstance(modm_value, datetime):
+                modm_value = pytz.utc.localize(modm_value)
+            setattr(django_obj, field, modm_value)
+
+        return django_obj
 
     class Meta:
         abstract = True
