@@ -2,12 +2,14 @@ import logging
 import random
 from datetime import datetime
 
+import bson
 import modularodm.exceptions
 import pytz
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
+from django.utils import timezone
 from osf_models.exceptions import ValidationError
 from osf_models.modm_compat import to_django_query, Q
 from osf_models.utils.base import generate_object_id
@@ -15,6 +17,7 @@ from osf_models.utils.base import generate_object_id
 ALPHABET = '23456789abcdefghjkmnpqrstuvwxyz'
 
 logger = logging.getLogger(__name__)
+
 
 def generate_guid(length=5):
     while True:
@@ -45,6 +48,7 @@ class MODMCompatibilityQuerySet(models.QuerySet):
                 field_name, direction = item
                 prefix = '-' if direction == -1 else ''
                 return ''.join([prefix, field_name])
+
         sort_keys = [sort_key(each) for each in fields]
         return self.order_by(*sort_keys)
 
@@ -174,11 +178,12 @@ class Guid(BaseModel):
     # /TODO DELETE ME POST MIGRATION
 
     id = models.AutoField(primary_key=True)
-    _id = models.CharField(max_length=255, null=False, blank=False)
+    _id = models.CharField(max_length=255, null=False, blank=False, default=generate_guid, db_index=True,
+                           unique=True)
     referent = GenericForeignKey()
     content_type = models.ForeignKey(ContentType, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
-    created = models.DateTimeField()
+    created = models.DateTimeField(db_index=True)  # , auto_now_add=True)
 
     def initialize_guid(self, instance):
         self._id = generate_guid(length=instance.__guid_min_length__)
@@ -187,7 +192,7 @@ class Guid(BaseModel):
     @classmethod
     def load(cls, data):
         try:
-            return cls.objects.get(guid=data)
+            return cls.objects.get(_id=data)
         except cls.DoesNotExist:
             return None
 
@@ -203,9 +208,8 @@ class Guid(BaseModel):
         else:
             return super(Guid, cls).find(query, *args, **kwargs)
 
-
     @classmethod
-    def migrate_from_modm(cls, modm_obj):
+    def migrate_from_modm(cls, modm_obj, referent=None):
         """
         Given a modm Guid make a django Guid
 
@@ -214,7 +218,19 @@ class Guid(BaseModel):
         """
         django_obj = cls()
 
-        django_obj.guid = modm_obj._id
+        if modm_obj._id != modm_obj.referent._id:
+            # if the object has a BSON id, get the created date from that
+            django_obj.created = bson.ObjectId(modm_obj.referent._id).generation_time
+        else:
+            # just make it now
+            django_obj.created = timezone.now()
+
+        django_obj._id = modm_obj._id
+
+        if referent:
+            # if the referent was passed set the GFK to point to it
+            django_obj.content_type = ContentType.objects.get_for_model(referent)
+            django_obj.object_id = referent.pk
 
         return django_obj
 
@@ -263,7 +279,6 @@ class PKIDStr(str):
 
 
 class BaseIDMixin(models.Model):
-
     @classmethod
     def load(cls, q):
         # modm doesn't throw exceptions when loading things that don't exist
