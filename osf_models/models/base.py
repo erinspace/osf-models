@@ -29,7 +29,7 @@ def generate_guid(length=5):
         except BlackListGuid.DoesNotExist:
             # it's not, check and see if it's already in the database
             try:
-                Guid.objects.get(guid=guid_id)
+                Guid.objects.get(_id=guid_id)
             except Guid.DoesNotExist:
                 # valid and unique guid
                 return guid_id
@@ -72,9 +72,9 @@ class BaseModel(models.Model):
     def load(cls, data):
         try:
             if issubclass(cls, GuidMixin):
-                return cls.objects.get(guid__guid=data)
+                return cls.objects.get(guids___id=data)
             elif issubclass(cls, ObjectIDMixin):
-                return cls.objects.get(guid=data)
+                return cls.objects.get(_id=data)
             return cls.objects.getQ(pk=data)
         except cls.DoesNotExist:
             return None
@@ -185,9 +185,6 @@ class Guid(BaseModel):
     object_id = models.PositiveIntegerField(null=True, blank=True)
     created = models.DateTimeField(db_index=True)  # , auto_now_add=True)
 
-    def initialize_guid(self, instance):
-        self._id = generate_guid(length=instance.__guid_min_length__)
-
     # Override load in order to load by GUID
     @classmethod
     def load(cls, data):
@@ -195,18 +192,6 @@ class Guid(BaseModel):
             return cls.objects.get(_id=data)
         except cls.DoesNotExist:
             return None
-
-    @classmethod
-    def find(cls, query, *args, **kwargs):
-        # Make referent queryable
-        # NOTE: This won't work with compound queries
-        if hasattr(query, 'attribute') and query.attribute == 'referent':
-            # We rely on the fact that the related_name for BaseIDMixin.guid
-            # is 'referent_<lowercased class name>'
-            class_name = query.argument.__class__.__name__.lower()
-            return super(Guid, cls).find(Q('referent_{}'.format(class_name), query.op, query.argument))
-        else:
-            return super(Guid, cls).find(query, *args, **kwargs)
 
     @classmethod
     def migrate_from_modm(cls, modm_obj, referent=None):
