@@ -2,6 +2,7 @@ from osf_models.models.base import BaseModel, ObjectIDMixin
 from django.db import models
 from osf_models.utils.datetime_aware_jsonfield import DateTimeAwareJSONField
 
+
 class MetaSchema(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.model.MetaSchema'
@@ -16,7 +17,7 @@ class MetaSchema(ObjectIDMixin, BaseModel):
     schema_version = models.IntegerField()
 
     class Meta:
-        unique_together = ('name', 'schema_version', 'guid')
+        unique_together = ('name', 'schema_version', '_id')
 
     @property
     def _config(self):

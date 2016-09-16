@@ -855,4 +855,4 @@ class FileVersion(ObjectIDMixin, BaseModel):
         return True
 
     class Meta:
-        index_together = [('guid', 'metadata')]
+        index_together = [('_id', 'metadata')]

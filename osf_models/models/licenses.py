@@ -21,6 +21,7 @@ def serialize_node_license_record(node_license_record):
     ret.update(_serialize(('year', 'copyright_holders'), node_license_record))
     return ret
 
+
 class NodeLicense(ObjectIDMixin, BaseModel):
     # TODO DELETE ME POST MIGRATION
     modm_model_path = 'website.project.licenses.NodeLicense'
@@ -39,7 +40,7 @@ class NodeLicense(ObjectIDMixin, BaseModel):
         return django_obj
 
     class Meta:
-        unique_together = ['guid', 'license_id']
+        unique_together = ['_id', 'license_id']
 
 
 class NodeLicenseRecord(ObjectIDMixin, BaseModel):
