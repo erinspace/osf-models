@@ -75,7 +75,7 @@ class Preprint(AbstractNode):
 
         self.subjects.clear()
         self.subjects.add(
-            *Subject.objects.filter(guid__object_id__in=preprint_subjects).values_list('pk', flat=True)
+            *Subject.objects.filter(_id__in=preprint_subjects).values_list('pk', flat=True)
         )
         if save:
             self.save()

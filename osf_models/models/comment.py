@@ -51,6 +51,13 @@ class Comment(GuidMixin, CommentableMixin, SpamMixin, BaseModel):
     # /TODO DELETE ME POST MIGRATION
     __guid_min_length__ = 12
 
+    FIELD_ALIASES = {
+        # this is repeated here because it overrides the one in GuidMixin
+        # TODO: Find a better way
+        'root_target': 'root_target___id',
+        'target': 'target___id'
+    }
+
     OVERVIEW = 'node'
     FILES = 'files'
     WIKI = 'wiki'

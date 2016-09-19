@@ -316,6 +316,10 @@ class ObjectIDMixin(BaseIDMixin):
         abstract = True
 
 
+class InvalidGuid(Exception):
+    pass
+
+
 class GuidMixin(BaseIDMixin):
     __guid_min_length__ = 5
 
@@ -325,7 +329,25 @@ class GuidMixin(BaseIDMixin):
 
     @property
     def _id(self):
-        return self.guids.order_by('-created').first()._id
+        guid = self.guids.order_by('-created').first()
+        if guid:
+            return guid._id
+        return None
+
+    @_id.setter
+    def _id(self, value):
+        # TODO do we really want to allow this?
+        guid, created = Guid.objects.get_or_create(_id=value)
+        if created:
+            guid.object_id = self.pk
+            guid.content_type = ContentType.objects.get_for_model(self)
+            guid.save()
+        elif guid.content_type == ContentType.objects.get_for_model(self) and guid.object_id == self.pk:
+            # TODO should this up the created for the guid until now so that it appears as the first guid
+            # for this object?
+            return
+        else:
+            raise InvalidGuid('Cannot indirectly repoint an existing guid, please use the Guid model')
 
     _primary_key = _id
 

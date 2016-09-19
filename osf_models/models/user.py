@@ -93,6 +93,11 @@ class OSFUser(DirtyFieldsMixin, GuidMixin, BaseModel,
     modm_query = None
     # /TODO DELETE ME POST MIGRATION
 
+    FIELD_ALIASES = {
+        # this is repeated here because it overrides the one in GuidMixin
+        '_id': 'guids___id',
+    }
+
     USERNAME_FIELD = 'username'
 
     # Node fields that trigger an update to the search engine on save
@@ -881,7 +886,7 @@ class OSFUser(DirtyFieldsMixin, GuidMixin, BaseModel,
                  .filter(_contributors=self)
                  .filter(_contributors=other_user))
         if primary_keys:
-            return set(query.values_list('guid__guid', flat=True))
+            return set(query.values_list('guids___id', flat=True))
         else:
             return set(query.all())
 

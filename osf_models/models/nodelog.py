@@ -14,6 +14,15 @@ class NodeLog(ObjectIDMixin, BaseModel):
     modm_query = None
     migration_page_size = 100000
     # /TODO DELETE ME POST MIGRATION
+
+    FIELD_ALIASES = {
+        # this is repeated here because it overrides the one in GuidMixin
+        # TODO: Find a better way
+        'node': 'node__guids___id',
+        'user': 'user__guids___id',
+        'original_node': 'original_node__guids___id'
+    }
+
     DATE_FORMAT = '%m/%d/%Y %H:%M UTC'
 
     # Log action constants -- NOTE: templates stored in log_templates.mako
