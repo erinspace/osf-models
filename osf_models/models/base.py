@@ -9,6 +9,8 @@ from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelatio
 from django.contrib.contenttypes.models import ContentType
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import models
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 from django.utils import timezone
 from osf_models.exceptions import ValidationError
 from osf_models.modm_compat import to_django_query
@@ -146,6 +148,10 @@ class BaseModel(models.Model):
         """Create a new, unsaved copy of this object."""
         copy = self.__class__.objects.get(pk=self.pk)
         copy.id = None
+        try:
+            copy._id = bson.ObjectId()
+        except AttributeError:
+            pass
         return copy
 
     def save(self, *args, **kwargs):
@@ -177,7 +183,7 @@ class Guid(BaseModel):
     referent = GenericForeignKey()
     content_type = models.ForeignKey(ContentType, null=True, blank=True)
     object_id = models.PositiveIntegerField(null=True, blank=True)
-    created = models.DateTimeField(db_index=True)  # , auto_now_add=True)
+    created = models.DateTimeField(db_index=True, auto_now_add=True)
 
     # Override load in order to load by GUID
     @classmethod
@@ -259,15 +265,6 @@ class PKIDStr(str):
 
 class BaseIDMixin(models.Model):
     @classmethod
-    def load(cls, q):
-        # modm doesn't throw exceptions when loading things that don't exist
-        kwargs = {'guid__{}'.format(cls.primary_identifier_name): q}
-        try:
-            return cls.objects.get(**kwargs)
-        except cls.DoesNotExist:
-            return None
-
-    @classmethod
     def migrate_from_modm(cls, modm_obj):
         """
         Given a modm object, make a django object with the same local fields.
@@ -300,50 +297,20 @@ class BaseIDMixin(models.Model):
         ret.guid = None
         return ret
 
-    def save(self, *args, **kwargs):
-        if not self.guid:
-            self.guid = Guid.objects.create()
-        if not getattr(self.guid, self.primary_identifier_name, None):
-            initialization_method = getattr(self.guid, 'initialize_{}'.format(self.primary_identifier_name))
-            initialization_method(self)
-            self.guid.save()
-        return super(BaseIDMixin, self).save(*args, **kwargs)
-
     class Meta:
         abstract = True
 
 
 class ObjectIDMixin(BaseIDMixin):
-    _id = models.CharField(max_length=24, default=generate_object_id)
+    _id = models.CharField(max_length=24, default=generate_object_id, unique=True, db_index=True)
 
     @classmethod
-    def migrate_from_modm(cls, modm_obj):
-        """
-        Given a modm object, make a django object with the same local fields.
-
-        This is a base method that may work for simple objects.
-        It should be customized in the child class if it doesn't work.
-
-        :param modm_obj:
-        :return:
-        """
-
-        django_obj = cls()
-
-        local_django_fields = set([x.name for x in django_obj._meta.get_fields() if not x.is_relation])
-
-        intersecting_fields = set(modm_obj.to_storage().keys()).intersection(
-            set(local_django_fields))
-
-        for field in intersecting_fields:
-            modm_value = getattr(modm_obj, field)
-            if modm_value is None:
-                continue
-            if isinstance(modm_value, datetime):
-                modm_value = pytz.utc.localize(modm_value)
-            setattr(django_obj, field, modm_value)
-
-        return django_obj
+    def load(cls, q):
+        try:
+            return cls.objects.get(_id=q)
+        except cls.DoesNotExist:
+            # modm doesn't throw exceptions when loading things that don't exist
+            return None
 
     class Meta:
         abstract = True
@@ -352,11 +319,24 @@ class ObjectIDMixin(BaseIDMixin):
 class GuidMixin(BaseIDMixin):
     __guid_min_length__ = 5
 
-    guids = GenericRelation(Guid)
+    guids = GenericRelation(Guid, related_name='referent', related_query_name='referents')
+
+    # TODO: use pre-delete signal to disable delete cascade
 
     @property
     def _id(self):
         return self.guids.order_by('-created').first()._id
+
+    _primary_key = _id
+
+    @classmethod
+    def load(cls, q):
+        try:
+            # if referent doesn't exist it will return None
+            return Guid.objects.get(_id=q).referent
+        except cls.DoesNotExist:
+            # modm doesn't throw exceptions when loading things that don't exist
+            return None
 
     @property
     def deep_url(self):
@@ -364,3 +344,12 @@ class GuidMixin(BaseIDMixin):
 
     class Meta:
         abstract = True
+
+
+@receiver(post_save)
+def ensure_guid(sender, instance, created, **kwargs):
+    if not issubclass(sender, GuidMixin):
+        return False
+    if not instance.guids.exists():
+        Guid.objects.create(object_id=instance.pk, content_type=ContentType.objects.get_for_model(instance),
+                            _id=generate_guid(instance.__guid_min_length__))

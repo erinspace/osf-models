@@ -60,9 +60,9 @@ from .base import BaseModel, GuidMixin, Guid
 logger = logging.getLogger(__name__)
 
 
-class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
+class AbstractNode(TypedModel, AddonModelMixin, GuidMixin, IdentifierMixin,
                    NodeLinkMixin,
-                   Taggable, Loggable, GuidMixin, BaseModel):
+                   Taggable, Loggable, BaseModel):
     """
     All things that inherit from AbstractNode will appear in
     the same table and will be differentiated by the `type` column.
@@ -75,6 +75,9 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
     primary = True
 
     FIELD_ALIASES = {
+        # this is repeated here because it overrides the one in GuidMixin
+        # TODO: Find a better way
+        '_id': 'guids___id',
         'contributors': '_contributors',
     }
 
@@ -558,7 +561,7 @@ class AbstractNode(TypedModel, AddonModelMixin, IdentifierMixin,
     # visible_contributor_ids was moved to this property
     @property
     def visible_contributor_ids(self):
-        return self.contributor_set.filter(visible=True).values_list('user__guid__guid', flat=True)
+        return self.contributor_set.filter(visible=True).values_list('user__guids___id', flat=True)
 
     @property
     def system_tags(self):
