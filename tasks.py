@@ -59,16 +59,14 @@ def flake(ctx):
 
 @task(pre=[flake])
 def test(ctx, setup=False, update=False, requirements=True, branch=POSTGRES_BRANCH):
-    import pytest
     if setup or update:
         setup_tests(ctx, update=update, requirements=requirements, branch=branch)
     if not os.path.exists('osf.io'):
         print('Must run "inv setup_tests" before running tests.')
         sys.exit(1)
     os.chdir('osf.io')
-    models_retcode = pytest.main(['osf_models_tests'])
-
-    views_retcode = pytest.main([os.path.join('tests', 'test_views.py')])
+    models_retcode = ctx.run('py.test osf_models_tests')
+    views_retcode = ctx.run('py.test {}'.format(os.path.join('tests', 'test_views.py')))
     if any([
         models_retcode,
         views_retcode,
